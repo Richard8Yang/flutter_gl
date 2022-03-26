@@ -124,21 +124,29 @@ class OpenGLContextES extends OpenGL30Constant {
     return gl.glTexParameteri(v0, v1, v2);
   }
 
-  void texImage2D(target, level, internalformat, width, height, border, format, type,
-      data) {
-    return gl.glTexImage2D(target, level, internalformat, width, height, border,
-        format, type, getData(data).cast<Void>());
+  void texImage2D(target, level, internalformat, width, height, border, format,
+      type, data) {
+    final ptr = getData(data);
+    final ret = gl.glTexImage2D(target, level, internalformat, width, height,
+        border, format, type, ptr.cast<Void>());
+    if (!(data is NativeArray)) calloc.free(ptr);
+    return ret;
   }
 
   void texImage2D_NOSIZE(target, level, internalformat, format, type, data) {
-    return gl.texImage2D(target, level, internalformat, format, type,
-        getData(data).cast<Void>());
+    final ptr = getData(data);
+    final ret = gl.texImage2D(
+        target, level, internalformat, format, type, ptr.cast<Void>());
+    if (!(data is NativeArray)) calloc.free(ptr);
+    return ret;
   }
 
-  void texImage3D(int target, int level, int internalformat, int width, int height,
-      int depth, int border, int format, int type, data) {
+  void texImage3D(int target, int level, int internalformat, int width,
+      int height, int depth, int border, int format, int type, data) {
+    final ptr = getData(data);
     gl.glTexImage3D(target, level, internalformat, width, height, depth, border,
-        format, type, getData(data));
+        format, type, ptr);
+    if (!(data is NativeArray)) calloc.free(ptr);
   }
 
   void depthFunc(v0) {
@@ -350,11 +358,16 @@ class OpenGLContextES extends OpenGL30Constant {
   }
 
   void bufferData(int target, int size, data, int usage) {
-    return gl.glBufferData(target, size, getData(data).cast<Void>(), usage);
+    final ptr = getData(data);
+    final ret = gl.glBufferData(target, size, ptr.cast<Void>(), usage);
+    if (!(data is NativeArray)) calloc.free(ptr);
+    return ret;
   }
 
   void bufferSubData(target, offset, data, srcOffset, length) {
-    gl.glBufferSubData(target, offset, length, getData(data).cast<Void>());
+    final ptr = getData(data);
+    gl.glBufferSubData(target, offset, length, ptr.cast<Void>());
+    if (!(data is NativeArray)) calloc.free(ptr);
   }
 
   void vertexAttribPointer(
@@ -380,7 +393,8 @@ class OpenGLContextES extends OpenGL30Constant {
     return gl.glFramebufferTexture2D(v0, v1, v2, v3, v4);
   }
 
-  void readPixels(int x, int y, int width, int height, int format, int type, data) {
+  void readPixels(
+      int x, int y, int width, int height, int format, int type, data) {
     if (data is NativeArray) {
       readPixelsNative(x, y, width, height, format, type, data);
     } else {
@@ -388,14 +402,14 @@ class OpenGLContextES extends OpenGL30Constant {
     }
   }
 
-  void readPixelsNative(int x, int y, int width, int height, int format, int type,
-      NativeArray data) {
+  void readPixelsNative(int x, int y, int width, int height, int format,
+      int type, NativeArray data) {
     final dataPtr = data.data;
     gl.glReadPixels(x, y, width, height, format, type, dataPtr);
   }
 
-  void readPixelsNormal(int x, int y, int width, int height, int format, int type,
-      Uint8List data) {
+  void readPixelsNormal(int x, int y, int width, int height, int format,
+      int type, Uint8List data) {
     final dataPtr = toPointer(data);
     gl.glReadPixels(x, y, width, height, format, type, dataPtr);
     Uint8List _data = (dataPtr as Pointer<Uint8>).asTypedList(data.length);
@@ -403,27 +417,44 @@ class OpenGLContextES extends OpenGL30Constant {
     calloc.free(dataPtr);
   }
 
-  void copyTexImage2D(target, level, internalformat, x, y, int width, int height, border) {
+  void copyTexImage2D(
+      target, level, internalformat, x, y, int width, int height, border) {
     return gl.glCopyTexImage2D(
         target, level, internalformat, x, y, width, height, border);
   }
 
-  void texSubImage2D(target, level, x, y, int width, int height, format, type, data) {
+  void texSubImage2D(
+      target, level, x, y, int width, int height, format, type, data) {
     final dataPtr = getData(data);
     gl.glTexSubImage2D(
         target, level, x, y, width, height, format, type, dataPtr.cast<Void>());
+    if (!(data is NativeArray)) calloc.free(dataPtr);
   }
 
   void texSubImage2D2(x, y, int width, int height, data) {
     final dataPtr = getData(data);
     gl.glTexSubImage2D(
         TEXTURE_2D, 0, x, y, width, height, RGBA, UNSIGNED_BYTE, dataPtr);
+    if (!(data is NativeArray)) calloc.free(dataPtr);
   }
 
-  void texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height, depth,
-      format, type, pixels) {
-    return gl.glTexSubImage3D(target, level, xoffset, yoffset, zoffset, width.toInt(),
-        height.toInt(), depth, format, type, getData(pixels).cast<Void>());
+  void texSubImage3D(target, level, xoffset, yoffset, zoffset, width, height,
+      depth, format, type, pixels) {
+    final dataPtr = getData(pixels);
+    final ret = gl.glTexSubImage3D(
+        target,
+        level,
+        xoffset,
+        yoffset,
+        zoffset,
+        width.toInt(),
+        height.toInt(),
+        depth,
+        format,
+        type,
+        dataPtr.cast<Void>());
+    if (!(pixels is NativeArray)) calloc.free(dataPtr);
+    return ret;
   }
 
   void compressedTexSubImage2D(target, level, xoffset, yoffset, width, height,
@@ -770,7 +801,8 @@ class OpenGLContextES extends OpenGL30Constant {
   }
 
   void uniform4fv(location, NativeArray value) {
-    return gl.glUniform4fv(location, value.length ~/ 4, value.data.cast<Void>());
+    return gl.glUniform4fv(
+        location, value.length ~/ 4, value.data.cast<Void>());
   }
 
   void uniform4f(location, num v0, num v1, num v2, num v3) {
@@ -794,7 +826,8 @@ class OpenGLContextES extends OpenGL30Constant {
     return gl.glTexStorage2D(target, levels, internalformat, width, height);
   }
 
-  void texStorage3D(target, levels, internalformat, int width, int height, depth) {
+  void texStorage3D(
+      target, levels, internalformat, int width, int height, depth) {
     return gl.glTexStorage3D(
         target, levels, internalformat, width, height, depth);
   }
@@ -847,22 +880,25 @@ class ActiveInfo {
 }
 
 toPointer(data) {
-  if (data is Float32List ||
+  if (data is Uint8List) {
+    final ptr = calloc<Uint8>(data.length);
+    ptr.asTypedList(data.length).setAll(0, data);
+    return ptr;
+  } else if (data is Float32List ||
       data.runtimeType.toString() == "List<double>" ||
-      data.runtimeType.toString() == "List<num>" ||
       data.runtimeType.toString() == "_GrowableList<double>") {
+    final ptr = calloc<Float>(data.length);
+    ptr.asTypedList(data.length).setAll(0, data);
+    return ptr;
+  } else if (data.runtimeType.toString() == "List<num>") {
     final ptr = calloc<Float>(data.length);
     ptr
         .asTypedList(data.length)
         .setAll(0, List<double>.from(data.map((e) => e.toDouble())));
     return ptr;
-  } else if (data is Uint8List) {
-    final ptr = calloc<Uint8>(data.length);
-    ptr.asTypedList(data.length).setAll(0, data.map((e) => e));
-    return ptr;
   } else if (data is List<int>) {
     final ptr = calloc<Uint32>(data.length);
-    ptr.asTypedList(data.length).setAll(0, data.map((e) => e));
+    ptr.asTypedList(data.length).setAll(0, data);
     return ptr;
   } else {
     throw (" flutter_gl OpenGLContextES.dart toPointer ${data.runtimeType} TODO ");
