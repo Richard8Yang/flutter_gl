@@ -73,6 +73,9 @@ public class CustomRender: NSObject, FlutterTexture {
   }
   
   func updateTexture(sourceTexture: Int64) -> Bool {
+
+    glEnable(GLenum(GL_BLEND));
+    glBlendFunc(GLenum(GL_SRC_ALPHA), GLenum(GL_ONE_MINUS_SRC_ALPHA));
  
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBuffer);
     

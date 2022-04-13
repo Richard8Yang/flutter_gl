@@ -71,6 +71,9 @@ class CustomRender {
 
 
         this.execute {
+            // Enable alpha channel
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0);
 
