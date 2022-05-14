@@ -18,9 +18,9 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
   /// This local reference serves to register the plugin with the Flutter Engine and unregister it
   /// when the Flutter Engine is detached from the Activity
   private lateinit var channel : MethodChannel
+  private lateinit var videoPlugin : BetterPlayerPlugin;
 
   var renders = mutableMapOf<Int, CustomRender>();
-
 
   companion object {
     lateinit var messenger: BinaryMessenger;
@@ -32,12 +32,12 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
   override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
     channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_gl")
     channel.setMethodCallHandler(this)
-
-
     messenger = flutterPluginBinding.binaryMessenger;
     context = flutterPluginBinding.applicationContext;
     registry = flutterPluginBinding.textureRegistry;
     assets = flutterPluginBinding.flutterAssets;
+
+    videoPlugin = BetterPlayerPlugin(context, registry)
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
@@ -55,6 +55,8 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
 
       var render = CustomRender(options, surfaceTexture, textureID);
       renders[textureID] = render;
+
+      videoPlugin.setShareEglContext(render.eglEnv.eglContext)
 
 //      println("initialize textureID: ${textureID}  render.screenScale: ${render.screenScale} ")
 
@@ -95,7 +97,7 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
 
       result.success(null);
     } else {
-      result.notImplemented()
+      videoPlugin.onMethodCall(call, result)
     }
   }
 
