@@ -5,8 +5,8 @@
 // Dart imports:
 import 'dart:async';
 import 'dart:io';
-import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
-import 'package:better_player/src/video_player/video_player_platform_interface.dart';
+import 'package:flutter_gl/video/src/configuration/better_player_buffering_configuration.dart';
+import 'package:flutter_gl/video/src/video_player/video_player_platform_interface.dart';
 import 'package:flutter/material.dart';
 import 'package:flutter/services.dart';
 
@@ -173,10 +173,10 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   VideoPlayerController({
     this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
     bool autoCreate = true,
-    dynamic shareEglContext = null,
+    bool wantSharedTexture = true,
   }) : super(VideoPlayerValue(duration: null)) {
     if (autoCreate) {
-      _create(shareEglContext);
+      _create(wantSharedTexture);
     }
   }
 
@@ -184,6 +184,7 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
       StreamController.broadcast();
   final Completer<void> _creatingCompleter = Completer<void>();
   int? _textureId;
+  int? _sharedTextureId;
 
   Timer? _timer;
   bool _isDisposed = false;
@@ -198,12 +199,16 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   //@visibleForTesting
   int? get textureId => _textureId;
 
+  int? get sharedTextureId => _sharedTextureId;
+
   /// Attempts to open the given [dataSource] and load metadata about the video.
-  Future<void> _create(dynamic shareEglContext) async {
-    _textureId = await _videoPlayerPlatform.create(
+  Future<void> _create(bool wantSharedTexture) async {
+    final texIds = await _videoPlayerPlatform.create(
       bufferingConfiguration: bufferingConfiguration,
-      shareEglContext: shareEglContext,
+      wantSharedTexture: wantSharedTexture,
     );
+    _textureId = texIds[0];
+    _sharedTextureId = texIds.length > 1 ? texIds[1] : null;
     _creatingCompleter.complete(null);
 
     unawaited(_applyLooping());
@@ -591,28 +596,11 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
         _textureId, width, height, bitrate);
   }
 
-  Future<void> enablePictureInPicture(
-      {double? top, double? left, double? width, double? height}) async {
-    await _videoPlayerPlatform.enablePictureInPicture(
-        textureId, top, left, width, height);
-  }
-
-  Future<void> disablePictureInPicture() async {
-    await _videoPlayerPlatform.disablePictureInPicture(textureId);
-  }
-
   void _updatePosition(Duration? position, {DateTime? absolutePosition}) {
     value = value.copyWith(position: _seekPosition ?? position);
     if (_seekPosition == null) {
       value = value.copyWith(absolutePosition: absolutePosition);
     }
-  }
-
-  Future<bool?> isPictureInPictureSupported() async {
-    if (_textureId == null) {
-      return false;
-    }
-    return _videoPlayerPlatform.isPictureInPictureEnabled(_textureId);
   }
 
   void refresh() {

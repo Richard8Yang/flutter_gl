@@ -32,6 +32,7 @@ import android.opengl.*
  */
 class BetterPlayerPlugin(
     private val appContext: Context,
+    private val messenger: BinaryMessenger,
     private val textureEntry: TextureRegistry,
     private var eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
 ) {
@@ -41,6 +42,15 @@ class BetterPlayerPlugin(
     private var currentNotificationDataSource: Map<String, Any?>? = null
     private var pipHandler: Handler? = null
     private var pipRunnable: Runnable? = null
+    
+    public fun onAttachedToEngine(binding: FlutterPluginBinding) {
+        // do nothing
+    }
+    
+    public fun onDetachedFromEngine(binding: FlutterPluginBinding) {
+        disposeAllPlayers()
+        releaseCache()
+    }
 
     public fun setShareEglContext(shareEglContext: EGLContext) {
         eglContext = shareEglContext;
@@ -55,10 +65,14 @@ class BetterPlayerPlugin(
     }
 
     public fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
+        //Log.d("PLAYER", call.method)
         when (call.method) {
             INIT_METHOD -> disposeAllPlayers()
             CREATE_METHOD -> {
                 val videoTex = textureEntry.createSurfaceTexture()
+                val eventChannel = EventChannel(
+                    messenger, EVENTS_CHANNEL + videoTex.id()
+                )
                 var customDefaultLoadControl: CustomDefaultLoadControl? = null
                 if (call.hasArgument(MIN_BUFFER_MS) && call.hasArgument(MAX_BUFFER_MS) &&
                     call.hasArgument(BUFFER_FOR_PLAYBACK_MS) &&
@@ -73,7 +87,7 @@ class BetterPlayerPlugin(
                 }
                 // create player with share EGL context if specified
                 val player = BetterPlayer(
-                    appContext, videoTex, customDefaultLoadControl, result, eglContext
+                    appContext, eventChannel, videoTex, customDefaultLoadControl, result, eglContext
                 )
                 videoPlayers.put(videoTex.id(), player)
             }
@@ -355,6 +369,7 @@ class BetterPlayerPlugin(
 
     companion object {
         private const val TAG = "BetterPlayerPlugin"
+        private const val EVENTS_CHANNEL = "better_player_channel/videoEvents"
         private const val DATA_SOURCE_PARAMETER = "dataSource"
         private const val KEY_PARAMETER = "key"
         private const val HEADERS_PARAMETER = "headers"
@@ -383,7 +398,6 @@ class BetterPlayerPlugin(
         private const val DRM_HEADERS_PARAMETER = "drmHeaders"
         private const val DRM_CLEARKEY_PARAMETER = "clearKey"
         private const val MIX_WITH_OTHERS_PARAMETER = "mixWithOthers"
-        private const val SHARED_EGLCONTEXT = "sharedEglContext"
         const val URL_PARAMETER = "url"
         const val PRE_CACHE_SIZE_PARAMETER = "preCacheSize"
         const val MAX_CACHE_SIZE_PARAMETER = "maxCacheSize"

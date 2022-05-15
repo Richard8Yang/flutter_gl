@@ -1,12 +1,12 @@
 import 'dart:async';
 import 'dart:io';
-import 'package:better_player/better_player.dart';
-import 'package:better_player/src/configuration/better_player_controller_event.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
-import 'package:better_player/src/subtitles/better_player_subtitle.dart';
-import 'package:better_player/src/subtitles/better_player_subtitles_factory.dart';
-import 'package:better_player/src/video_player/video_player.dart';
-import 'package:better_player/src/video_player/video_player_platform_interface.dart';
+import 'package:flutter_gl/video/better_player.dart';
+import 'package:flutter_gl/video/src/configuration/better_player_controller_event.dart';
+import 'package:flutter_gl/video/src/core/better_player_utils.dart';
+import 'package:flutter_gl/video/src/subtitles/better_player_subtitle.dart';
+import 'package:flutter_gl/video/src/subtitles/better_player_subtitles_factory.dart';
+import 'package:flutter_gl/video/src/video_player/video_player.dart';
+import 'package:flutter_gl/video/src/video_player/video_player_platform_interface.dart';
 import 'package:collection/collection.dart' show IterableExtension;
 import 'package:flutter/material.dart';
 import 'package:path_provider/path_provider.dart';
@@ -28,8 +28,8 @@ class BetterPlayerController {
   ///Playlist configuration used in controller instance.
   final BetterPlayerPlaylistConfiguration? betterPlayerPlaylistConfiguration;
 
-  ///Share EGL context
-  final dynamic shareEglContext;
+  ///Return shared offscreen texture or onscreen texture
+  final bool wantSharedTexture;
 
   ///List of event listeners, which listen to events.
   final List<Function(BetterPlayerEvent)?> _eventListeners = [];
@@ -216,14 +216,14 @@ class BetterPlayerController {
   BetterPlayerController(
     this.betterPlayerConfiguration, {
     this.betterPlayerPlaylistConfiguration,
-    this.shareEglContext,
+    this.wantSharedTexture = true,
     BetterPlayerDataSource? betterPlayerDataSource,
   }) {
     this._betterPlayerControlsConfiguration =
         betterPlayerConfiguration.controlsConfiguration;
     _eventListeners.add(eventListener);
     if (betterPlayerDataSource != null) {
-      setupDataSource(betterPlayerDataSource, this.shareEglContext);
+      setupDataSource(betterPlayerDataSource, this.wantSharedTexture);
     }
   }
 
@@ -237,7 +237,7 @@ class BetterPlayerController {
 
   ///Setup new data source in Better Player.
   Future setupDataSource(BetterPlayerDataSource betterPlayerDataSource,
-      [dynamic shareEglContext = null]) async {
+      [bool wantSharedTexture = true]) async {
     postEvent(BetterPlayerEvent(BetterPlayerEventType.setupDataSource,
         parameters: <String, dynamic>{
           _dataSourceParameter: betterPlayerDataSource,
@@ -252,7 +252,7 @@ class BetterPlayerController {
     if (videoPlayerController == null) {
       videoPlayerController = VideoPlayerController(
         bufferingConfiguration: betterPlayerDataSource.bufferingConfiguration,
-        shareEglContext: shareEglContext,
+        wantSharedTexture: wantSharedTexture,
       );
       videoPlayerController?.addListener(_onVideoPlayerChanged);
     }
@@ -1058,80 +1058,10 @@ class BetterPlayerController {
     return _overriddenFit ?? betterPlayerConfiguration.fit;
   }
 
-  ///Enable Picture in Picture (PiP) mode. [betterPlayerGlobalKey] is required
-  ///to open PiP mode in iOS. When device is not supported, PiP mode won't be
-  ///open.
-  Future<void>? enablePictureInPicture(GlobalKey betterPlayerGlobalKey) async {
-    if (videoPlayerController == null) {
-      throw StateError("The data source has not been initialized");
-    }
-
-    final bool isPipSupported =
-        (await videoPlayerController!.isPictureInPictureSupported()) ?? false;
-
-    if (isPipSupported) {
-      _wasInFullScreenBeforePiP = _isFullScreen;
-      _wasControlsEnabledBeforePiP = _controlsEnabled;
-      setControlsEnabled(false);
-      if (Platform.isAndroid) {
-        _wasInFullScreenBeforePiP = _isFullScreen;
-        await videoPlayerController?.enablePictureInPicture(
-            left: 0, top: 0, width: 0, height: 0);
-        enterFullScreen();
-        _postEvent(BetterPlayerEvent(BetterPlayerEventType.pipStart));
-        return;
-      }
-      if (Platform.isIOS) {
-        final RenderBox? renderBox = betterPlayerGlobalKey.currentContext!
-            .findRenderObject() as RenderBox?;
-        if (renderBox == null) {
-          BetterPlayerUtils.log(
-              "Can't show PiP. RenderBox is null. Did you provide valid global"
-              " key?");
-          return;
-        }
-        final Offset position = renderBox.localToGlobal(Offset.zero);
-        return videoPlayerController?.enablePictureInPicture(
-          left: position.dx,
-          top: position.dy,
-          width: renderBox.size.width,
-          height: renderBox.size.height,
-        );
-      } else {
-        BetterPlayerUtils.log("Unsupported PiP in current platform.");
-      }
-    } else {
-      BetterPlayerUtils.log(
-          "Picture in picture is not supported in this device. If you're "
-          "using Android, please check if you're using activity v2 "
-          "embedding.");
-    }
-  }
-
-  ///Disable Picture in Picture mode if it's enabled.
-  Future<void>? disablePictureInPicture() {
-    if (videoPlayerController == null) {
-      throw StateError("The data source has not been initialized");
-    }
-    return videoPlayerController!.disablePictureInPicture();
-  }
-
   // ignore: use_setters_to_change_properties
   ///Set GlobalKey of BetterPlayer. Used in PiP methods called from controls.
   void setBetterPlayerGlobalKey(GlobalKey betterPlayerGlobalKey) {
     _betterPlayerGlobalKey = betterPlayerGlobalKey;
-  }
-
-  ///Check if picture in picture mode is supported in this device.
-  Future<bool> isPictureInPictureSupported() async {
-    if (videoPlayerController == null) {
-      throw StateError("The data source has not been initialized");
-    }
-
-    final bool isPipSupported =
-        (await videoPlayerController!.isPictureInPictureSupported()) ?? false;
-
-    return isPipSupported && !_isFullScreen;
   }
 
   ///Handle VideoEvent when remote controls notification / PiP is shown

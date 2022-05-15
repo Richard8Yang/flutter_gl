@@ -6,7 +6,7 @@
 import 'dart:async';
 
 // Flutter imports:
-import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
+import 'package:flutter_gl/video/src/configuration/better_player_buffering_configuration.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'method_channel_video_player.dart';
@@ -66,9 +66,9 @@ abstract class VideoPlayerPlatform {
   }
 
   /// Creates an instance of a video player and returns its textureId.
-  Future<int?> create(
+  Future<List<int?>> create(
       {BetterPlayerBufferingConfiguration? bufferingConfiguration,
-      dynamic shareEglContext}) {
+      bool wantSharedTexture = true}) {
     throw UnimplementedError('create() has not been implemented.');
   }
 

@@ -1,12 +1,13 @@
 import 'dart:async';
-import 'package:better_player/src/configuration/better_player_controls_configuration.dart';
-import 'package:better_player/src/controls/better_player_controls_state.dart';
-import 'package:better_player/src/controls/better_player_cupertino_progress_bar.dart';
-import 'package:better_player/src/controls/better_player_multiple_gesture_detector.dart';
-import 'package:better_player/src/controls/better_player_progress_colors.dart';
-import 'package:better_player/src/core/better_player_controller.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
-import 'package:better_player/src/video_player/video_player.dart';
+import 'dart:ffi';
+import 'package:flutter_gl/video/src/configuration/better_player_controls_configuration.dart';
+import 'package:flutter_gl/video/src/controls/better_player_controls_state.dart';
+import 'package:flutter_gl/video/src/controls/better_player_cupertino_progress_bar.dart';
+import 'package:flutter_gl/video/src/controls/better_player_multiple_gesture_detector.dart';
+import 'package:flutter_gl/video/src/controls/better_player_progress_colors.dart';
+import 'package:flutter_gl/video/src/core/better_player_controller.dart';
+import 'package:flutter_gl/video/src/core/better_player_utils.dart';
+import 'package:flutter_gl/video/src/video_player/video_player.dart';
 import 'package:flutter/cupertino.dart';
 import 'package:flutter/material.dart';
 
@@ -765,46 +766,6 @@ class _BetterPlayerCupertinoControlsState
     double iconSize,
     double buttonPadding,
   ) {
-    return FutureBuilder<bool>(
-      future: _betterPlayerController!.isPictureInPictureSupported(),
-      builder: (context, snapshot) {
-        final isPipSupported = snapshot.data ?? false;
-        if (isPipSupported &&
-            _betterPlayerController!.betterPlayerGlobalKey != null) {
-          return GestureDetector(
-            onTap: () {
-              betterPlayerController!.enablePictureInPicture(
-                  betterPlayerController!.betterPlayerGlobalKey!);
-            },
-            child: AnimatedOpacity(
-              opacity: controlsNotVisible ? 0.0 : 1.0,
-              duration: _controlsConfiguration.controlsHideTime,
-              child: ClipRRect(
-                borderRadius: BorderRadius.circular(10),
-                child: Container(
-                  height: barHeight,
-                  padding: EdgeInsets.only(
-                    left: buttonPadding,
-                    right: buttonPadding,
-                  ),
-                  decoration: BoxDecoration(
-                    color: backgroundColor.withOpacity(0.5),
-                  ),
-                  child: Center(
-                    child: Icon(
-                      _controlsConfiguration.pipMenuIcon,
-                      color: iconColor,
-                      size: iconSize,
-                    ),
-                  ),
-                ),
-              ),
-            ),
-          );
-        } else {
-          return const SizedBox();
-        }
-      },
-    );
+    return SizedBox();
   }
 }

@@ -1,13 +1,13 @@
 import 'dart:async';
-import 'package:better_player/src/configuration/better_player_controls_configuration.dart';
-import 'package:better_player/src/controls/better_player_clickable_widget.dart';
-import 'package:better_player/src/controls/better_player_controls_state.dart';
-import 'package:better_player/src/controls/better_player_material_progress_bar.dart';
-import 'package:better_player/src/controls/better_player_multiple_gesture_detector.dart';
-import 'package:better_player/src/controls/better_player_progress_colors.dart';
-import 'package:better_player/src/core/better_player_controller.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
-import 'package:better_player/src/video_player/video_player.dart';
+import 'package:flutter_gl/video/src/configuration/better_player_controls_configuration.dart';
+import 'package:flutter_gl/video/src/controls/better_player_clickable_widget.dart';
+import 'package:flutter_gl/video/src/controls/better_player_controls_state.dart';
+import 'package:flutter_gl/video/src/controls/better_player_material_progress_bar.dart';
+import 'package:flutter_gl/video/src/controls/better_player_multiple_gesture_detector.dart';
+import 'package:flutter_gl/video/src/controls/better_player_progress_colors.dart';
+import 'package:flutter_gl/video/src/core/better_player_controller.dart';
+import 'package:flutter_gl/video/src/core/better_player_utils.dart';
+import 'package:flutter_gl/video/src/video_player/video_player.dart';
 
 // Flutter imports:
 import 'package:flutter/material.dart';
@@ -215,10 +215,7 @@ class _BetterPlayerMaterialControlsState
 
   Widget _buildPipButton() {
     return BetterPlayerMaterialClickableWidget(
-      onTap: () {
-        betterPlayerController!.enablePictureInPicture(
-            betterPlayerController!.betterPlayerGlobalKey!);
-      },
+      onTap: () {},
       child: Padding(
         padding: const EdgeInsets.all(8),
         child: Icon(
@@ -231,31 +228,7 @@ class _BetterPlayerMaterialControlsState
 
   Widget _buildPipButtonWrapperWidget(
       bool hideStuff, void Function() onPlayerHide) {
-    return FutureBuilder<bool>(
-      future: betterPlayerController!.isPictureInPictureSupported(),
-      builder: (context, snapshot) {
-        final bool isPipSupported = snapshot.data ?? false;
-        if (isPipSupported &&
-            _betterPlayerController!.betterPlayerGlobalKey != null) {
-          return AnimatedOpacity(
-            opacity: hideStuff ? 0.0 : 1.0,
-            duration: betterPlayerControlsConfiguration.controlsHideTime,
-            onEnd: onPlayerHide,
-            child: Container(
-              height: betterPlayerControlsConfiguration.controlBarHeight,
-              child: Row(
-                mainAxisAlignment: MainAxisAlignment.end,
-                children: [
-                  _buildPipButton(),
-                ],
-              ),
-            ),
-          );
-        } else {
-          return const SizedBox();
-        }
-      },
-    );
+    return SizedBox();
   }
 
   Widget _buildMoreButton() {

@@ -72,6 +72,7 @@ import android.opengl.*
 
 internal class BetterPlayer (
     context: Context,
+    private val eventChannel: EventChannel,
     private val textureEntry: SurfaceTextureEntry,
     customDefaultLoadControl: CustomDefaultLoadControl?,
     result: MethodChannel.Result,
@@ -115,7 +116,7 @@ internal class BetterPlayer (
             .build()
         workManager = WorkManager.getInstance(context)
         workerObserverMap = HashMap()
-        setupVideoPlayer(textureEntry, result, eglContext)
+        setupVideoPlayer(eventChannel, textureEntry, result, eglContext)
     }
 
     fun setDataSource(
@@ -503,10 +504,20 @@ internal class BetterPlayer (
     }
 
     private fun setupVideoPlayer(
+        eventChannel: EventChannel, 
         textureEntry: SurfaceTextureEntry, 
         result: MethodChannel.Result, 
         eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
     ) {
+        eventChannel.setStreamHandler(
+            object : EventChannel.StreamHandler {
+                override fun onListen(o: Any?, sink: EventSink) {
+                    eventSink.setDelegate(sink)
+                }
+                override fun onCancel(o: Any?) {
+                    eventSink.setDelegate(null)
+                }
+            })
         // Create opengl renderer with textureEntry
         if (renderer != null) {
             renderer?.dispose()
@@ -810,6 +821,7 @@ internal class BetterPlayer (
             exoPlayer!!.stop()
         }
         textureEntry.release()
+        eventChannel.setStreamHandler(null)
         if (surface != null) {
             surface!!.release()
         }

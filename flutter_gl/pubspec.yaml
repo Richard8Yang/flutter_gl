@@ -15,6 +15,11 @@ dependencies:
   flutter_gl_macos: ^0.0.3
   flutter_gl_windows: ^0.0.3
   ffi: ^1.1.2
+  flutter_widget_from_html_core: ^0.8.5+3
+  xml: ^5.3.1
+  path_provider: ^2.0.10
+  visibility_detector: ^0.3.2
+  wakelock: ^0.6.1+2
 
 dev_dependencies:
   flutter_test:

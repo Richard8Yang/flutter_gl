@@ -1,7 +1,7 @@
 import 'dart:convert';
 import 'dart:io';
-import 'package:better_player/better_player.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
+import 'package:flutter_gl/video/better_player.dart';
+import 'package:flutter_gl/video/src/core/better_player_utils.dart';
 import 'better_player_subtitle.dart';
 
 class BetterPlayerSubtitlesFactory {

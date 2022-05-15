@@ -29,15 +29,21 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
     lateinit var assets: FlutterPlugin.FlutterAssets;
   }
 
-  override fun onAttachedToEngine(@NonNull flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
-    channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_gl")
+  override fun onAttachedToEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    channel = MethodChannel(binding.binaryMessenger, "flutter_gl")
     channel.setMethodCallHandler(this)
-    messenger = flutterPluginBinding.binaryMessenger;
-    context = flutterPluginBinding.applicationContext;
-    registry = flutterPluginBinding.textureRegistry;
-    assets = flutterPluginBinding.flutterAssets;
+    messenger = binding.binaryMessenger;
+    context = binding.applicationContext;
+    registry = binding.textureRegistry;
+    assets = binding.flutterAssets;
 
-    videoPlugin = BetterPlayerPlugin(context, registry)
+    videoPlugin = BetterPlayerPlugin(context, messenger, registry)
+    videoPlugin.onAttachedToEngine(binding)
+  }
+
+  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
+    channel.setMethodCallHandler(null)
+    videoPlugin.onDetachedFromEngine(binding)
   }
 
   override fun onMethodCall(@NonNull call: MethodCall, @NonNull result: Result) {
@@ -99,9 +105,5 @@ class FlutterGlPlugin: FlutterPlugin, MethodCallHandler {
     } else {
       videoPlugin.onMethodCall(call, result)
     }
-  }
-
-  override fun onDetachedFromEngine(@NonNull binding: FlutterPlugin.FlutterPluginBinding) {
-    channel.setMethodCallHandler(null)
   }
 }

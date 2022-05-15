@@ -2,8 +2,8 @@
 // Use of this source code is governed by a BSD-style license that can be
 // found in the LICENSE file.
 import 'dart:async';
-import 'package:better_player/src/configuration/better_player_buffering_configuration.dart';
-import 'package:better_player/src/core/better_player_utils.dart';
+import 'package:flutter_gl/video/src/configuration/better_player_buffering_configuration.dart';
+import 'package:flutter_gl/video/src/core/better_player_utils.dart';
 import 'package:flutter/foundation.dart';
 import 'package:flutter/services.dart';
 import 'package:flutter/widgets.dart';
@@ -21,17 +21,17 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<void> dispose(int? textureId) {
     return _channel.invokeMethod<void>(
-      'dispose',
+      'video.dispose',
       <String, dynamic>{'textureId': textureId},
     );
   }
 
   @override
-  Future<int?> create(
+  Future<List<int?>> create(
       {BetterPlayerBufferingConfiguration? bufferingConfiguration,
-      dynamic shareEglContext}) async {
+      bool wantSharedTexture = true}) async {
     late final Map<String, dynamic>? response;
-    if (bufferingConfiguration == null && shareEglContext == null) {
+    if (bufferingConfiguration == null) {
       response =
           await _channel.invokeMapMethod<String, dynamic>('video.create');
     } else {
@@ -44,20 +44,19 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         args['bufferForPlaybackAfterRebufferMs'] =
             bufferingConfiguration.bufferForPlaybackAfterRebufferMs;
       }
-      if (shareEglContext != null) {
-        args['sharedEglContext'] = shareEglContext;
-      }
       print("Creating player with args: $args");
       final responseLinkedHashMap =
-          await _channel.invokeMethod<Map?>('create', args);
+          await _channel.invokeMethod<Map?>('video.create', args);
 
       response = responseLinkedHashMap != null
           ? Map<String, dynamic>.from(responseLinkedHashMap)
           : null;
     }
     // Return the shared offscreen texture if shared EGL context is specified
-    final key = shareEglContext == null ? 'textureId' : 'sharedTextureId';
-    return response?[key] as int?;
+    final texId = response?['textureId'] as int?;
+    List<int?> ret = [texId];
+    if (wantSharedTexture) ret.add(response?['sharedTextureId'] as int?);
+    return ret;
   }
 
   @override
