@@ -14,6 +14,7 @@ import UIKit
   }
 
   @objc public func initialize(registrar: FlutterPluginRegistrar) {
+    self.renders = [Int64: CustomRender]();
     self.registry = registrar.textures();
   }
 
@@ -53,9 +54,9 @@ import UIKit
       sharedEglCtx = render.getEglContext();
       
       self.textureId = self.registry!.register(render);
-      print("Created renderer \(render), texture id \(self.textureId)");
+      print("Created renderer \(render), texture id \(self.textureId!)");
 
-      self.renders[textureId!] = render;
+      self.renders[self.textureId!] = render;
       
       let _info = [
         "textureId": textureId
