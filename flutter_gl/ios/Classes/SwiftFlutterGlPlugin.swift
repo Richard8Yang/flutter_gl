@@ -1,30 +1,31 @@
 import Flutter
 import UIKit
 
-public class SwiftFlutterGlPlugin: NSObject, FlutterPlugin {
+@objc public class SwiftFlutterGlPlugin: NSObject {
   
   var renders: [Int64: CustomRender];
 
-  var registry: FlutterTextureRegistry;
+  var registry: FlutterTextureRegistry?;
   var textureId: Int64?;
-  static var messenger : FlutterBinaryMessenger? = nil;
+  var sharedEglCtx: EAGLContext?;
   
-  public static func register(with registrar: FlutterPluginRegistrar) {
-    let _messenger = registrar.messenger();
-    messenger = _messenger;
-    let channel = FlutterMethodChannel(name: "flutter_gl", binaryMessenger: _messenger)
-    let instance = SwiftFlutterGlPlugin(textureRegistry: registrar.textures())
-    registrar.addMethodCallDelegate(instance, channel: channel)
-  }
-  
-  init(textureRegistry: FlutterTextureRegistry) {
+  override init() {
     self.renders = [Int64: CustomRender]();
-    self.registry = textureRegistry;
   }
-  
-  public func handle(_ call: FlutterMethodCall, result: @escaping FlutterResult) {
+
+  @objc public func initialize(registrar: FlutterPluginRegistrar) {
+    self.registry = registrar.textures();
+  }
+
+  @objc public func getSharedEglContext() -> EAGLContext? {
+    return sharedEglCtx;
+  }
+
+  @objc public func handle(call: FlutterMethodCall, result: @escaping FlutterResult) -> Bool {
     //    result("iOS " + UIDevice.current.systemVersion)
     let methodName = call.method;
+
+    var handled: Bool = true;
   
 //    print("call method: \(methodName)  ");
     
@@ -34,27 +35,27 @@ public class SwiftFlutterGlPlugin: NSObject, FlutterPlugin {
     case "initialize":
       guard let args = call.arguments as? [String : Any] else {
         result(" arguments error.... ")
-        return
+        return true;
       }
       
       let options = args["options"] as! Dictionary<String, Any>;
-       let renderToVideo = args["renderToVideo"] as! Bool;
+      let renderToVideo = args["renderToVideo"] as! Bool;
       
       let render = CustomRender(
         options: options,
         renderToVideo: renderToVideo,
         onNewFrame: {() -> Void in
 //          print(" self.registry.textureFrameAvailable(self.textureId!): \(self.textureId) ")
-          self.registry.textureFrameAvailable(self.textureId!)
+          self.registry!.textureFrameAvailable(self.textureId!)
         }
       );
+
+      sharedEglCtx = render.getEglContext();
       
-      self.textureId = self.registry.register(render);
-      
-      
+      self.textureId = self.registry!.register(render);
+      print("Created renderer \(render), texture id \(self.textureId)");
+
       self.renders[textureId!] = render;
-      
-      
       
       let _info = [
         "textureId": textureId
@@ -65,24 +66,22 @@ public class SwiftFlutterGlPlugin: NSObject, FlutterPlugin {
     case "dispose":
       guard let args = call.arguments as? [String : Any] else {
         result(" arguments error.... ")
-        return
+        return true;
       }
       let textureId = args["textureId"] as? Int64;
       
       if(textureId != nil) {
-        registry.unregisterTexture(textureId!);
+        registry!.unregisterTexture(textureId!);
         let render = self.renders[textureId!];
          render?.dispose();
         self.renders.removeValue(forKey: textureId!);
       }
-     
-      
       result(nil);
     
     case "getEgl":
       guard let args = call.arguments as? [String : Any] else {
         result(" arguments error.... ")
-        return
+        return true;
       }
 
       let textureId = args["textureId"] as? Int64;
@@ -94,7 +93,7 @@ public class SwiftFlutterGlPlugin: NSObject, FlutterPlugin {
     case "updateTexture":
       guard let args = call.arguments as? [String : Any] else {
         result(" arguments error.... ")
-        return
+        return true;
       }
 
       let textureId = args["textureId"] as? Int64;
@@ -106,10 +105,10 @@ public class SwiftFlutterGlPlugin: NSObject, FlutterPlugin {
 
       result(resp);
     default:
-      result(nil);
+      //result(nil);
+      handled = false;
     }
 
-
+    return handled;
   }
-  
 }

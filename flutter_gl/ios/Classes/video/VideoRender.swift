@@ -2,7 +2,7 @@ import Flutter
 import OpenGLES.ES3
 import GLKit
 
-@objc public class CustomRender: NSObject, FlutterTexture {
+@objc public class VideoRender: NSObject, FlutterTexture {
   var fboTargetPixelBuffer: CVPixelBuffer? = nil;
   var fboTextureCache: CVOpenGLESTextureCache? = nil;
   var fboTexture: CVOpenGLESTexture? = nil;
@@ -16,7 +16,7 @@ import GLKit
   var eglEnv: EglEnv?;
   var shareEglCtx: EAGLContext?;
 
-  var worker: RenderWorker? = nil;
+  var worker: VideoRenderWorker? = nil;
 
   var disposed: Bool = false;
 
@@ -28,7 +28,7 @@ import GLKit
 
   func setup() {
     initEGL();
-    self.worker = RenderWorker();
+    self.worker = VideoRenderWorker();
     self.worker!.setup();
   }
   

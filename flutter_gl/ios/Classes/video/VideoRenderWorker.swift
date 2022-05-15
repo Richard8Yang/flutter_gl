@@ -3,19 +3,7 @@ import AVFoundation
 import GLKit
 import OpenGLES.ES3
 
-struct SenceVertex {
-  var positionCoord: (CFloat, CFloat, CFloat); // (X, Y, Z)
-  var textureCoord: (CFloat, CFloat) ; // (U, V)
-};
-
-var vertices = [SenceVertex]();
-
-enum VertexAttrs: GLuint {
-  case position = 0
-  case texture = 1
-}
-
-public class RenderWorker: NSObject {
+public class VideoRenderWorker: NSObject {
   var vertexBuffer: GLuint = 0;
   var vertexBuffer4FBO: GLuint = 0;
   

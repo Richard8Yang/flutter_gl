@@ -1,19 +1,46 @@
 PODS:
+  - Cache (6.0.0)
   - Flutter (1.0.0)
   - flutter_gl (0.0.3):
+    - Cache (~> 6.0.0)
     - Flutter
+    - GCDWebServer
+    - HLSCachingReverseProxyServer
+    - PINCache
     - three3d_egl (~> 0.1.3)
-  - path_provider (0.0.1):
+  - GCDWebServer (3.5.4):
+    - GCDWebServer/Core (= 3.5.4)
+  - GCDWebServer/Core (3.5.4)
+  - HLSCachingReverseProxyServer (0.1.0):
+    - GCDWebServer (~> 3.5)
+    - PINCache (>= 3.0.1-beta.3)
+  - path_provider_ios (0.0.1):
     - Flutter
+  - PINCache (3.0.3):
+    - PINCache/Arc-exception-safe (= 3.0.3)
+    - PINCache/Core (= 3.0.3)
+  - PINCache/Arc-exception-safe (3.0.3):
+    - PINCache/Core
+  - PINCache/Core (3.0.3):
+    - PINOperation (~> 1.2.1)
+  - PINOperation (1.2.1)
   - three3d_egl (0.1.3)
+  - wakelock (0.0.1):
+    - Flutter
 
 DEPENDENCIES:
   - Flutter (from `Flutter`)
   - flutter_gl (from `.symlinks/plugins/flutter_gl/ios`)
-  - path_provider (from `.symlinks/plugins/path_provider/ios`)
+  - path_provider_ios (from `.symlinks/plugins/path_provider_ios/ios`)
+  - wakelock (from `.symlinks/plugins/wakelock/ios`)
 
 SPEC REPOS:
   trunk:
+    - Cache
+    - GCDWebServer
+    - HLSCachingReverseProxyServer
+    - PINCache
+    - PINOperation
     - three3d_egl
 
 EXTERNAL SOURCES:
@@ -21,15 +48,23 @@ EXTERNAL SOURCES:
     :path: Flutter
   flutter_gl:
     :path: ".symlinks/plugins/flutter_gl/ios"
-  path_provider:
-    :path: ".symlinks/plugins/path_provider/ios"
+  path_provider_ios:
+    :path: ".symlinks/plugins/path_provider_ios/ios"
+  wakelock:
+    :path: ".symlinks/plugins/wakelock/ios"
 
 SPEC CHECKSUMS:
+  Cache: 4ca7e00363fca5455f26534e5607634c820ffc2d
   Flutter: 50d75fe2f02b26cc09d224853bb45737f8b3214a
-  flutter_gl: 5a5603f35db897697f064027864a32b15d0c421d
-  path_provider: abfe2b5c733d04e238b0d8691db0cfd63a27a93c
+  flutter_gl: c67498124e9385b8f53866892f85f31651bde871
+  GCDWebServer: 2c156a56c8226e2d5c0c3f208a3621ccffbe3ce4
+  HLSCachingReverseProxyServer: 59935e1e0244ad7f3375d75b5ef46e8eb26ab181
+  path_provider_ios: 14f3d2fd28c4fdb42f44e0f751d12861c43cee02
+  PINCache: 7a8fc1a691173d21dbddbf86cd515de6efa55086
+  PINOperation: 00c935935f1e8cf0d1e2d6b542e75b88fc3e5e20
   three3d_egl: de2cd4950ad2d5f2122166c36583bde4c812e7b5
+  wakelock: d0fc7c864128eac40eba1617cb5264d9c940b46f
 
 PODFILE CHECKSUM: 8baa96de485bcb0aea5a26510e6a7160d93feee8
 
-COCOAPODS: 1.11.2
+COCOAPODS: 1.11.3

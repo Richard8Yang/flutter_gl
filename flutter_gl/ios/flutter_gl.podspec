@@ -22,6 +22,10 @@ A new flutter plugin project.
   s.dependency "three3d_egl", '~> 0.1.3'
   # s.vendored_frameworks = "Frameworks/three3d_egl.framework"
   # s.preserve_path = "Frameworks/*"
+  s.dependency 'Cache', '~> 6.0.0'
+  s.dependency 'GCDWebServer'
+  s.dependency 'HLSCachingReverseProxyServer'
+  s.dependency 'PINCache'
 
   s.pod_target_xcconfig = {
     "DEFINES_MODULE" => "YES",

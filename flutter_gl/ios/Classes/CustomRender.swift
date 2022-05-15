@@ -40,8 +40,9 @@ public class CustomRender: NSObject, FlutterTexture {
     self.width = options["width"] as! Double;
     self.height = options["height"] as! Double;
     self.onNewFrame = onNewFrame;
-    
     self.screenScale = options["dpr"] as! Double;
+
+    print("Input screen dimension: \(self.width)x\(self.height) \(self.screenScale)");
     
     super.init();
 
@@ -53,23 +54,19 @@ public class CustomRender: NSObject, FlutterTexture {
   
   func setup() {
     initEGL();
-
-    
     self.worker = RenderWorker();
-
-
     self.worker!.setup();
   }
   
   func getEgl() -> Array<Int64> {
     var _egls = [Int64](repeating: 0, count: 6);
-    
-
     _egls[2] = self.eglEnv!.getContext();
     _egls[5] = self.dartEglEnv!.getContext();
-    
-  
     return _egls;
+  }
+
+  func getEglContext() -> EAGLContext? {
+    return self.eglEnv!.getRawContext();
   }
   
   func updateTexture(sourceTexture: Int64) -> Bool {
@@ -91,17 +88,16 @@ public class CustomRender: NSObject, FlutterTexture {
   }
   
   public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
-  
-      var pixelBuffer: CVPixelBuffer? = nil;
-      pixelBuffer = targetPixelBuffer;
-      if(pixelBuffer != nil) {
-        let result = Unmanaged.passRetained(pixelBuffer!);
-        return result;
-      } else {
-        print("pixelBuffer is nil.... ");
-        return nil;
-      }
+    var pixelBuffer: CVPixelBuffer? = nil;
+    pixelBuffer = targetPixelBuffer;
+    if(pixelBuffer != nil) {
+      let result = Unmanaged.passRetained(pixelBuffer!);
+      return result;
+    } else {
+      print("pixelBuffer is nil.... ");
+      return nil;
     }
+  }
   
   
   // ==================================
@@ -109,8 +105,6 @@ public class CustomRender: NSObject, FlutterTexture {
     let glWidth = width * Double(self.screenScale);
     let glHeight = height * Double(self.screenScale);
 
-    
-    
     self.eglEnv = EglEnv();
     self.dartEglEnv = EglEnv();
 
@@ -123,7 +117,6 @@ public class CustomRender: NSObject, FlutterTexture {
   
     ThreeEgl.setContext(key: 3, context: eAGLShareContext!);
 
-    
 //    var size: GLint = 0;
 //    glGetIntegerv(GLenum(GL_MAX_TEXTURE_SIZE), &size);
 //    print("GL_MAX_TEXTURE_SIZE: \(size) ")
@@ -146,12 +139,6 @@ public class CustomRender: NSObject, FlutterTexture {
     
     checkGlError(op: "EglEnv initGL 11...")
 
-    if(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
-      print("failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))");
-    }
-    
-    
-    
     glBindTexture(CVOpenGLESTextureGetTarget(texture!), CVOpenGLESTextureGetName(texture!));
       
     checkGlError(op: "EglEnv initGL 2...")
@@ -164,8 +151,6 @@ public class CustomRender: NSObject, FlutterTexture {
     
     glViewport(0, 0, GLsizei(glWidth), GLsizei(glHeight));
     
-
-    
     checkGlError(op: "EglEnv initGL 1...")
     // s多重采样
     //    glEnable(GLenum(GL_MULTISAMPLE));
@@ -176,7 +161,6 @@ public class CustomRender: NSObject, FlutterTexture {
     glBindRenderbuffer(GLenum(GL_RENDERBUFFER), colorRenderBuffer);
     
     glRenderbufferStorage(GLenum(GL_RENDERBUFFER), GLenum(GL_DEPTH24_STENCIL8), GLsizei(glWidth), GLsizei(glHeight));
-    
 
     glGenFramebuffers(1, &frameBuffer);
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBuffer);
@@ -185,19 +169,11 @@ public class CustomRender: NSObject, FlutterTexture {
     
     glFramebufferRenderbuffer(GLenum(GL_FRAMEBUFFER), GLenum(GL_STENCIL_ATTACHMENT), GLenum(GL_RENDERBUFFER), colorRenderBuffer);
     
-    if(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
+    if (glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)) != GL_FRAMEBUFFER_COMPLETE) {
       print("failed to make complete framebuffer object \(glCheckFramebufferStatus(GLenum(GL_FRAMEBUFFER)))");
     }
     
     checkGlError(op: "EglEnv initGL 2...")
-  }
-  
-  //检查每一步操作是否有错误的方法
-  func checkGlError(op: String) {
-    let error = glGetError();
-    if (error != GL_NO_ERROR) {
-      print("ES30_ERROR", "\(op): glError \(error)")
-    }
   }
   
   func createCVBufferWithSize(size: CGSize, context: EAGLContext) {
@@ -230,6 +206,12 @@ public class CustomRender: NSObject, FlutterTexture {
       
   }
 
+  func checkGlError(op: String) {
+    let error = glGetError();
+    if (error != GL_NO_ERROR) {
+      print("ES30_ERROR", "\(op): glError \(error)")
+    }
+  }
   
   func dispose() {
     self.disposed = true;

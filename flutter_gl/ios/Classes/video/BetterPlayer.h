@@ -14,7 +14,7 @@
 NS_ASSUME_NONNULL_BEGIN
 
 @class CacheManager;
-@class CustomRender;
+@class VideoRender;
 
 @interface BetterPlayer : NSObject <FlutterTexture, FlutterStreamHandler, AVPictureInPictureControllerDelegate>
 @property(readonly, nonatomic) AVPlayer* player;
@@ -27,7 +27,7 @@ NS_ASSUME_NONNULL_BEGIN
 @property(nonatomic, readonly) bool isPlaying;
 @property(nonatomic) bool isLooping;
 @property(nonatomic, readonly) bool isInitialized;
-@property(nonatomic, readonly) CustomRender* renderer;
+@property(nonatomic, readonly) VideoRender* renderer;
 @property(nonatomic, readonly) NSString* key;
 @property(nonatomic, readonly) int failedCount;
 @property(nonatomic) AVPlayerLayer* _playerLayer;
@@ -45,7 +45,7 @@ NS_ASSUME_NONNULL_BEGIN
 - (int64_t) duration;
 - (int64_t) position;
 - (int64_t)textureId;
-- (CustomRender*)textureRenderer;
+- (VideoRender*)textureRenderer;
 - (instancetype)initWithFrame:(CGRect)frame shareEglCtx:(EAGLContext*)shareEglCtx;
 - (void)setMixWithOthers:(bool)mixWithOthers;
 - (void)seekTo:(int)location;
@@ -55,9 +55,6 @@ NS_ASSUME_NONNULL_BEGIN
 - (void)setSpeed:(double)speed result:(FlutterResult)result;
 - (void) setAudioTrack:(NSString*) name index:(int) index;
 - (void)setTrackParameters:(int) width: (int) height: (int)bitrate;
-- (void) enablePictureInPicture: (CGRect) frame;
-- (void)setPictureInPicture:(BOOL)pictureInPicture;
-- (void)disablePictureInPicture;
 - (int64_t)absolutePosition;
 - (int64_t) FLTCMTimeToMillis:(CMTime) time;
 

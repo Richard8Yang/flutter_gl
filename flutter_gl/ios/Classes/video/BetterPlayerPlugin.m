@@ -3,10 +3,10 @@
 // found in the LICENSE file.
 
 #import "BetterPlayerPlugin.h"
-#if __has_include(<better_player/better_player-Swift.h>)
-#import <better_player/better_player-Swift.h>
+#if __has_include(<flutter_gl/flutter_gl-Swift.h>)
+#import <flutter_gl/flutter_gl-Swift.h>
 #else
-#import "better_player-Swift.h"
+#import "flutter_gl-Swift.h"
 #endif
 
 #if !__has_feature(objc_arc)
@@ -20,19 +20,10 @@ NSMutableDictionary*  _timeObserverIdDict;
 NSMutableDictionary*  _artworkImageDict;
 CacheManager* _cacheManager;
 BetterPlayer* _notificationPlayer;
+EAGLContext* _eglSharedCtx = nil;
 bool _remoteCommandsInitialized = false;
 
-
-#pragma mark - FlutterPlugin protocol
-+ (void)registerWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
-    BetterPlayerPlugin* instance = [[BetterPlayerPlugin alloc] initWithRegistrar:registrar];
-    FlutterMethodChannel* channel =
-        [FlutterMethodChannel methodChannelWithName:@"better_player_channel"
-                                    binaryMessenger:[registrar messenger]];
-    [registrar addMethodCallDelegate:instance channel:channel];
-    //[registrar publish:instance];
-}
-
+//#pragma mark - FlutterPlugin protocol
 - (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
@@ -71,11 +62,9 @@ bool _remoteCommandsInitialized = false;
     [eventChannel setStreamHandler:player];
     player.eventChannel = eventChannel;
     _players[@(textureId)] = player;
-    result(@{@"textureId" : @(textureId)});
 
-    // returns shared offscreen texture
-    textureId = [player textureId];
-    result(@{@"sharedTextureId" : @(textureId)});
+    // returns both onscreen and shared offscreen texture
+    result(@{@"textureId" : @(textureId), @"sharedTextureId" : @([player textureId])});
 }
 
 - (void) setupRemoteNotification :(BetterPlayer*) player{
@@ -112,6 +101,9 @@ bool _remoteCommandsInitialized = false;
     [[UIApplication sharedApplication] endReceivingRemoteControlEvents];
 }
 
+- (void) setSharedEglContext:(EAGLContext*)sharedEglCtx {
+    _eglSharedCtx = sharedEglCtx;
+}
 
 - (void) setupRemoteCommands:(BetterPlayer*)player  {
     if (_remoteCommandsInitialized){
@@ -266,7 +258,7 @@ bool _remoteCommandsInitialized = false;
 }
 
 - (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result {
-    if ([@"init" isEqualToString:call.method]) {
+    if ([@"video.init" isEqualToString:call.method]) {
         // Allow audio playback when the Ring/Silent switch is set to silent
         for (NSNumber* textureId in _players) {
             [_players[textureId] dispose];
@@ -274,16 +266,16 @@ bool _remoteCommandsInitialized = false;
 
         [_players removeAllObjects];
         result(nil);
-    } else if ([@"create" isEqualToString:call.method]) {
+    } else if ([@"video.create" isEqualToString:call.method]) {
         NSDictionary* argsMap = call.arguments;
-        EAGLContext* eglSharedCtx = argsMap[@"sharedEglContext"];
-        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero shareEglCtx:eglSharedCtx];
+        //EAGLContext* eglSharedCtx = argsMap[@"sharedEglContext"];
+        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero shareEglCtx:_eglSharedCtx];
         [self onPlayerSetup:player result:result];
     } else {
         NSDictionary* argsMap = call.arguments;
         int64_t textureId = ((NSNumber*)argsMap[@"textureId"]).unsignedIntegerValue;
         BetterPlayer* player = _players[@(textureId)];
-        if ([@"setDataSource" isEqualToString:call.method]) {
+        if ([@"video.setDataSource" isEqualToString:call.method]) {
             [player clear];
             // This call will clear cached frame because we will return transparent frame
 
@@ -332,7 +324,7 @@ bool _remoteCommandsInitialized = false;
                 result(FlutterMethodNotImplemented);
             }
             result(nil);
-        } else if ([@"dispose" isEqualToString:call.method]) {
+        } else if ([@"video.dispose" isEqualToString:call.method]) {
             [player clear];
             [self disposeNotificationData:player];
             [self setRemoteCommandsNotificationNotActive];
@@ -357,60 +349,42 @@ bool _remoteCommandsInitialized = false;
                 [[AVAudioSession sharedInstance] setActive:NO withOptions:AVAudioSessionSetActiveOptionNotifyOthersOnDeactivation error:nil];
             }
             result(nil);
-        } else if ([@"setLooping" isEqualToString:call.method]) {
+        } else if ([@"video.setLooping" isEqualToString:call.method]) {
             [player setIsLooping:[argsMap[@"looping"] boolValue]];
             result(nil);
-        } else if ([@"setVolume" isEqualToString:call.method]) {
+        } else if ([@"video.setVolume" isEqualToString:call.method]) {
             [player setVolume:[argsMap[@"volume"] doubleValue]];
             result(nil);
-        } else if ([@"play" isEqualToString:call.method]) {
+        } else if ([@"video.play" isEqualToString:call.method]) {
             [self setupRemoteNotification:player];
             [player play];
             result(nil);
-        } else if ([@"position" isEqualToString:call.method]) {
+        } else if ([@"video.position" isEqualToString:call.method]) {
             result(@([player position]));
-        } else if ([@"absolutePosition" isEqualToString:call.method]) {
+        } else if ([@"video.absolutePosition" isEqualToString:call.method]) {
             result(@([player absolutePosition]));
-        } else if ([@"seekTo" isEqualToString:call.method]) {
+        } else if ([@"video.seekTo" isEqualToString:call.method]) {
             [player seekTo:[argsMap[@"location"] intValue]];
             result(nil);
-        } else if ([@"pause" isEqualToString:call.method]) {
+        } else if ([@"video.pause" isEqualToString:call.method]) {
             [player pause];
             result(nil);
-        } else if ([@"setSpeed" isEqualToString:call.method]) {
+        } else if ([@"video.setSpeed" isEqualToString:call.method]) {
             [player setSpeed:[[argsMap objectForKey:@"speed"] doubleValue] result:result];
-        }else if ([@"setTrackParameters" isEqualToString:call.method]) {
+        } else if ([@"video.setTrackParameters" isEqualToString:call.method]) {
             int width = [argsMap[@"width"] intValue];
             int height = [argsMap[@"height"] intValue];
             int bitrate = [argsMap[@"bitrate"] intValue];
 
             [player setTrackParameters:width: height : bitrate];
             result(nil);
-        } else if ([@"enablePictureInPicture" isEqualToString:call.method]){
-            double left = [argsMap[@"left"] doubleValue];
-            double top = [argsMap[@"top"] doubleValue];
-            double width = [argsMap[@"width"] doubleValue];
-            double height = [argsMap[@"height"] doubleValue];
-            [player enablePictureInPicture:CGRectMake(left, top, width, height)];
-        } else if ([@"isPictureInPictureSupported" isEqualToString:call.method]){
-            if (@available(iOS 9.0, *)){
-                if ([AVPictureInPictureController isPictureInPictureSupported]){
-                    result([NSNumber numberWithBool:true]);
-                    return;
-                }
-            }
-
-            result([NSNumber numberWithBool:false]);
-        } else if ([@"disablePictureInPicture" isEqualToString:call.method]){
-            [player disablePictureInPicture];
-            [player setPictureInPicture:false];
-        } else if ([@"setAudioTrack" isEqualToString:call.method]){
+        } else if ([@"video.setAudioTrack" isEqualToString:call.method]){
             NSString* name = argsMap[@"name"];
             int index = [argsMap[@"index"] intValue];
             [player setAudioTrack:name index: index];
-        } else if ([@"setMixWithOthers" isEqualToString:call.method]){
+        } else if ([@"video.setMixWithOthers" isEqualToString:call.method]){
             [player setMixWithOthers:[argsMap[@"mixWithOthers"] boolValue]];
-        } else if ([@"preCache" isEqualToString:call.method]){
+        } else if ([@"video.preCache" isEqualToString:call.method]){
             NSDictionary* dataSource = argsMap[@"dataSource"];
             NSString* urlArg = dataSource[@"uri"];
             NSString* cacheKey = dataSource[@"cacheKey"];
@@ -436,10 +410,10 @@ bool _remoteCommandsInitialized = false;
                 }
             }
             result(nil);
-        } else if ([@"clearCache" isEqualToString:call.method]){
+        } else if ([@"video.clearCache" isEqualToString:call.method]){
             [_cacheManager clearCache];
             result(nil);
-        } else if ([@"stopPreCache" isEqualToString:call.method]){
+        } else if ([@"video.stopPreCache" isEqualToString:call.method]){
             NSString* urlArg = argsMap[@"url"];
             NSString* cacheKey = argsMap[@"cacheKey"];
             NSString* videoExtension = argsMap[@"videoExtension"];

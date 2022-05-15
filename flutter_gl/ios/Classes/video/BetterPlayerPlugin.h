@@ -11,10 +11,14 @@
 #import "BetterPlayer.h"
 #import <MediaPlayer/MediaPlayer.h>
 
-@interface BetterPlayerPlugin : NSObject <FlutterPlugin>
+@interface BetterPlayerPlugin : NSObject
 
 @property(readonly, weak, nonatomic) NSObject<FlutterBinaryMessenger>* messenger;
 @property(readonly, strong, nonatomic) NSMutableDictionary* players;
 @property(readonly, strong, nonatomic) NSObject<FlutterPluginRegistrar>* registrar;
+
+- (instancetype)initWithRegistrar:(NSObject<FlutterPluginRegistrar>*)registrar;
+- (void) setSharedEglContext:(EAGLContext*)sharedEglCtx;
+- (void)handleMethodCall:(FlutterMethodCall*)call result:(FlutterResult)result;
 
 @end

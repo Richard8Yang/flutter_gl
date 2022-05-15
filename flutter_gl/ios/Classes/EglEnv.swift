@@ -30,6 +30,10 @@ public class EglEnv : NSObject {
   func makeCurrent() {
     EAGLContext.setCurrent(self.context);
   }
+
+  func getRawContext() -> EAGLContext? {
+    return self.context;
+  }
   
   func getContext() -> Int64 {
     var _p = self.context!;
