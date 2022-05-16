@@ -13,7 +13,6 @@
 #error Code Requires ARC.
 #endif
 
-
 @implementation BetterPlayerPlugin
 NSMutableDictionary* _dataSourceDict;
 NSMutableDictionary*  _timeObserverIdDict;
@@ -62,6 +61,7 @@ bool _remoteCommandsInitialized = false;
     [eventChannel setStreamHandler:player];
     player.eventChannel = eventChannel;
     _players[@(textureId)] = player;
+    [player setRegisteredTexture:textureId];
 
     // returns both onscreen and shared offscreen texture
     result(@{@"textureId" : @(textureId), @"sharedTextureId" : @([player textureId])});
@@ -263,13 +263,12 @@ bool _remoteCommandsInitialized = false;
         for (NSNumber* textureId in _players) {
             [_players[textureId] dispose];
         }
-
         [_players removeAllObjects];
         result(nil);
     } else if ([@"video.create" isEqualToString:call.method]) {
         NSDictionary* argsMap = call.arguments;
         //EAGLContext* eglSharedCtx = argsMap[@"sharedEglContext"];
-        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero shareEglCtx:_eglSharedCtx];
+        BetterPlayer* player = [[BetterPlayer alloc] initWithFrame:CGRectZero shareEglCtx:_eglSharedCtx registry:[_registrar textures]];
         [self onPlayerSetup:player result:result];
     } else {
         NSDictionary* argsMap = call.arguments;

@@ -18,12 +18,20 @@ import GLKit
 
   var worker: VideoRenderWorker? = nil;
 
+  var videoOutput: AVPlayerItemVideoOutput? = nil;
+
   var disposed: Bool = false;
 
   @objc public func initialize(_ shareContext: EAGLContext?) {
     self.shareEglCtx = shareContext;
+    print("Video render: share EGL context is \(shareContext)");
     //self.eAGLShareContext = EAGLContext.init(api: EAGLRenderingAPI.openGLES3);
     self.setup();
+
+    let pixBuffAttributes: [String : Any] = [
+        (kCVPixelBufferPixelFormatTypeKey as String): kCVPixelFormatType_32BGRA
+    ];
+    videoOutput = AVPlayerItemVideoOutput(pixelBufferAttributes: pixBuffAttributes);
   }
 
   func setup() {
@@ -36,6 +44,10 @@ import GLKit
     var _egls = [Int64](repeating: 0, count: 6);
     _egls[2] = self.eglEnv!.getContext();
     return _egls;
+  }
+
+  @objc public func getVideoOutput() -> AVPlayerItemVideoOutput {
+    return videoOutput!;
   }
 
   @objc public func getTextureId() -> GLuint {
@@ -79,6 +91,15 @@ import GLKit
   }
   
   public func copyPixelBuffer() -> Unmanaged<CVPixelBuffer>? {
+    print("Got new frame!");
+      /*
+    CMTime outputItemTime = [_videoOutput itemTimeForHostTime:CACurrentMediaTime()];
+  if (videoOutput.hasNewPixelBufferForItemTime(outputItemTime)) {
+    return [_videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
+  } else {
+    return NULL;
+  }
+       */
     var pixelBuffer: CVPixelBuffer? = nil;
     pixelBuffer = fboTargetPixelBuffer;
     if (pixelBuffer != nil) {

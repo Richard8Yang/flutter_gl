@@ -9,6 +9,20 @@
 #import "flutter_gl-Swift.h"
 #endif
 
+@implementation FrameUpdater
+- (FrameUpdater *)initWithRegistry:(NSObject<FlutterTextureRegistry> *)registry {
+  NSAssert(self, @"super init cannot be nil");
+  if (self == nil) return nil;
+  _registry = registry;
+  return self;
+}
+
+- (void)onDisplayLink:(CADisplayLink *)link {
+  //NSLog(@"Display link update texture %d", _textureId);
+  [_registry textureFrameAvailable:_textureId];
+}
+@end
+
 static void* timeRangeContext = &timeRangeContext;
 static void* statusContext = &statusContext;
 static void* playbackLikelyToKeepUpContext = &playbackLikelyToKeepUpContext;
@@ -16,15 +30,8 @@ static void* playbackBufferEmptyContext = &playbackBufferEmptyContext;
 static void* playbackBufferFullContext = &playbackBufferFullContext;
 static void* presentationSizeContext = &presentationSizeContext;
 
-
-#if TARGET_OS_IOS
-void (^__strong _Nonnull _restoreUserInterfaceForPIPStopCompletionHandler)(BOOL);
-API_AVAILABLE(ios(9.0))
-AVPictureInPictureController *_pipController;
-#endif
-
 @implementation BetterPlayer
-- (instancetype)initWithFrame:(CGRect)frame shareEglCtx:(EAGLContext*)shareEglCtx {
+- (instancetype)initWithFrame:(CGRect)frame shareEglCtx:(EAGLContext*)shareEglCtx registry:(NSObject<FlutterTextureRegistry>*)registry {
     self = [super init];
     NSAssert(self, @"super init cannot be nil");
     _isInitialized = false;
@@ -40,6 +47,7 @@ AVPictureInPictureController *_pipController;
     // set shared context to renderer
     _renderer = [[VideoRender alloc] init];
     [_renderer initialize:shareEglCtx];
+    _frameUpdater = [[FrameUpdater alloc] initWithRegistry:registry];
     return self;
 }
 
@@ -84,6 +92,7 @@ AVPictureInPictureController *_pipController;
     }
 
     [self removeObservers];
+    [_displayLink invalidate];
     AVAsset* asset = [_player.currentItem asset];
     [asset cancelLoading];
 }
@@ -108,15 +117,6 @@ AVPictureInPictureController *_pipController;
         [[NSNotificationCenter defaultCenter] removeObserver:self];
         self._observersAdded = false;
     }
-}
-
-- (CVPixelBufferRef)copyPixelBuffer {
-  CMTime outputItemTime = [_videoOutput itemTimeForHostTime:CACurrentMediaTime()];
-  if ([_videoOutput hasNewPixelBufferForItemTime:outputItemTime]) {
-    return [_videoOutput copyPixelBufferForItemTime:outputItemTime itemTimeForDisplay:NULL];
-  } else {
-    return NULL;
-  }
 }
 
 - (void)itemDidPlayToEndTime:(NSNotification*)notification {
@@ -279,11 +279,14 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     [asset loadValuesAsynchronouslyForKeys:@[ @"tracks" ] completionHandler:assetCompletionHandler];
     [self addObservers:item];
 
-    NSDictionary *pixBuffAttributes = @{
-        (id)kCVPixelBufferPixelFormatTypeKey : @(kCVPixelFormatType_32BGRA),
-        (id)kCVPixelBufferIOSurfacePropertiesKey : @{}
-    };
-    _videoOutput = [[AVPlayerItemVideoOutput alloc] initWithPixelBufferAttributes:pixBuffAttributes];
+    [self createDisplayLink:_frameUpdater];
+}
+
+- (void)createDisplayLink:(FrameUpdater *)frameUpdater {
+  _displayLink = [CADisplayLink displayLinkWithTarget:frameUpdater
+                                             selector:@selector(onDisplayLink:)];
+  [_displayLink addToRunLoop:[NSRunLoop currentRunLoop] forMode:NSRunLoopCommonModes];
+  _displayLink.paused = YES;
 }
 
 -(void)handleStalled {
@@ -333,29 +336,6 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
                        context:(void*)context {
 
     if ([path isEqualToString:@"rate"]) {
-        if (@available(iOS 10.0, *)) {
-            if (_pipController.pictureInPictureActive == true){
-                if (_lastAvPlayerTimeControlStatus != [NSNull null] && _lastAvPlayerTimeControlStatus == _player.timeControlStatus){
-                    return;
-                }
-
-                if (_player.timeControlStatus == AVPlayerTimeControlStatusPaused){
-                    _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
-                    if (_eventSink != nil) {
-                      _eventSink(@{@"event" : @"pause"});
-                    }
-                    return;
-
-                }
-                if (_player.timeControlStatus == AVPlayerTimeControlStatusPlaying){
-                    _lastAvPlayerTimeControlStatus = _player.timeControlStatus;
-                    if (_eventSink != nil) {
-                      _eventSink(@{@"event" : @"play"});
-                    }
-                }
-            }
-        }
-
         if (_player.rate == 0 && //if player rate dropped to 0
             CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, >, kCMTimeZero) && //if video was started
             CMTIME_COMPARE_INLINE(_player.currentItem.currentTime, <, _player.currentItem.duration) && //but not yet finished
@@ -405,7 +385,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
             case AVPlayerItemStatusUnknown:
                 break;
             case AVPlayerItemStatusReadyToPlay:
-                [item addOutput:_videoOutput];
+                NSLog(@"Added video output");
+                [item addOutput:[_renderer getVideoOutput]];
                 [self onReadyToPlay];
                 break;
         }
@@ -434,6 +415,8 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
     if (!self._observersAdded){
         [self addObservers:[_player currentItem]];
     }
+
+    _displayLink.paused = !_isPlaying;
 
     if (_isPlaying) {
         if (@available(iOS 10.0, *)) {
@@ -542,6 +525,10 @@ static inline CGFloat radiansToDegrees(CGFloat radians) {
 
 - (VideoRender*)textureRenderer {
     return _renderer;
+}
+
+- (void)setRegisteredTexture:(int64_t) texId {
+    _frameUpdater.textureId = texId;
 }
 
 - (void)seekTo:(int)location {
