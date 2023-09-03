@@ -72,8 +72,14 @@ public class CustomRender: NSObject, FlutterTexture {
   
   func updateTexture(sourceTexture: Int64) -> Bool {
     CustomRender.eglEnv?.makeCurrent();
+
+    glEnable(GLenum(GL_BLEND));
+    glBlendFunc(GLenum(GL_SRC_ALPHA), GLenum(GL_ONE_MINUS_SRC_ALPHA));
  
     glBindFramebuffer(GLenum(GL_FRAMEBUFFER), frameBuffer);
+
+    glClearColor(GLclampf(0.0), GLclampf(0.0), GLclampf(0.0), GLclampf(0.0));
+    glClear(GLbitfield(GL_COLOR_BUFFER_BIT) | GLbitfield(GL_DEPTH_BUFFER_BIT) | GLbitfield(GL_STENCIL_BUFFER_BIT));
     
     self.worker!.renderTexture(texture: GLuint(sourceTexture), matrix: nil, isFBO: false);
 

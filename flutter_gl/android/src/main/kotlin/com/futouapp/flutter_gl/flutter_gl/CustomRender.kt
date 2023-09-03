@@ -50,6 +50,10 @@ class CustomRender(
         this.execute {
             eglEnv.makeCurrent()
 
+            // Enable alpha channel
+            glEnable(GL_BLEND);
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
