@@ -1,13 +1,12 @@
 package com.futouapp.flutter_gl.flutter_gl
 
-
+import android.opengl.*
 import android.opengl.GLES32.*
 import android.os.Handler
 import android.os.HandlerThread
 import com.futouapp.threeegl.ThreeEgl
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.util.concurrent.Semaphore
-
 
 class CustomRender(
     private val entry: SurfaceTextureEntry,
@@ -70,6 +69,9 @@ class CustomRender(
         return true
     }
 
+    fun getSharedEglContext(): EGLContext {
+        return shareEglEnv!!.eglContext
+    }
 
     private fun initEGL() {
 

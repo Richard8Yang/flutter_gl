@@ -7,6 +7,7 @@ import io.flutter.plugin.common.MethodCall
 import io.flutter.plugin.common.MethodChannel
 import io.flutter.plugin.common.MethodChannel.MethodCallHandler
 import io.flutter.plugin.common.MethodChannel.Result
+import io.flutter.plugin.common.BinaryMessenger
 import io.flutter.view.TextureRegistry
 
 class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
@@ -17,15 +18,19 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var channel: MethodChannel
     private lateinit var registry: TextureRegistry
     private lateinit var context: Context
+    private lateinit var messenger: BinaryMessenger;
+    private lateinit var videoPlugin: VideoPlayerPlugin;
 
     private var renders = mutableMapOf<Int, CustomRender>()
 
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_gl")
         channel.setMethodCallHandler(this)
-
         registry = flutterPluginBinding.textureRegistry
         context = flutterPluginBinding.applicationContext
+        messenger = flutterPluginBinding.binaryMessenger;
+
+        videoPlugin = VideoPlayerPlugin(context, messenger, registry)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -45,6 +50,8 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
 
                 val render = CustomRender(entry, glWidth, glHeight)
                 renders[textureID] = render
+
+                videoPlugin.setShareEglContext(render.getSharedEglContext())
 
                 result.success(mapOf("textureId" to textureID))
             }
@@ -79,7 +86,7 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(null)
             }
             else -> {
-                result.notImplemented()
+                videoPlugin.onMethodCall(call, result)
             }
         }
     }
