@@ -64,6 +64,17 @@ class VideoPlayerPlugin(
         }
     }
 
+    @Suppress("UNCHECKED_CAST")
+    private fun <T> getParameter(parameters: Map<String, Any?>, key: String, defaultValue: T): T {
+        if (parameters.containsKey(key)) {
+            val value = parameters[key]
+            if (value != null) {
+                return value as T
+            }
+        }
+        return defaultValue
+    }
+
     private fun handlePlayerControlCmd(
         call: MethodCall,
         result: MethodChannel.Result,
@@ -80,11 +91,20 @@ class VideoPlayerPlugin(
         }
         when (call.method) {
             "video.player.setDataSource" -> {
-                val dataSrcUri = call.argument<String?>("uri")
-                val dataSrcFmtHint = call.argument<String?>("fmtHint")
-                if (dataSrcUri != null) {
-                    player.setDataSource(dataSrcUri, dataSrcFmtHint)
+                val dataSrcDesc = call.argument<Map<String, Any?>>("dataSource")!!
+                val key = getParameter(dataSrcDesc, "key", "")
+                val uri = getParameter(dataSrcDesc, "uri", "")
+                val formatHint = getParameter<String?>(dataSrcDesc, "formatHint", null)
+                //val asset = getParameter(dataSrcDesc, "asset", "")
+                if (uri != null) {
+                    player.setDataSource(uri, formatHint)
                     result.success(null)
+                } else {
+                    result.error(
+                        "Uri is not specified",
+                        "Please specify a non-null uri",
+                        null
+                    )
                 }
             }
             "video.player.play" -> {

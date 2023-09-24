@@ -17,34 +17,22 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
 
   @override
   Future<List<int?>> create(
-      {BetterPlayerBufferingConfiguration? bufferingConfiguration,
-      bool wantSharedTexture = true}) async {
-    late final Map<String, dynamic>? response;
-    if (bufferingConfiguration == null) {
-      response =
-          await _channel.invokeMapMethod<String, dynamic>('video.create');
-    } else {
-      var args = Map<String, dynamic>();
-      if (bufferingConfiguration != null) {
-        args['minBufferMs'] = bufferingConfiguration.minBufferMs;
-        args['maxBufferMs'] = bufferingConfiguration.maxBufferMs;
-        args['bufferForPlaybackMs'] =
-            bufferingConfiguration.bufferForPlaybackMs;
-        args['bufferForPlaybackAfterRebufferMs'] =
-            bufferingConfiguration.bufferForPlaybackAfterRebufferMs;
-      }
-      print("Creating player with args: $args");
-      final responseLinkedHashMap =
-          await _channel.invokeMethod<Map?>('video.create', args);
+      {mixWithOthers = false, allowBackgroundPlayback = false}) async {
+    var args = Map<String, dynamic>();
+    args['mixWithOthers'] = mixWithOthers;
+    args['allowBackgroundPlayback'] = allowBackgroundPlayback;
+    print("Creating player with args: $args");
 
-      response = responseLinkedHashMap != null
-          ? Map<String, dynamic>.from(responseLinkedHashMap)
-          : null;
-    }
+    final responseLinkedHashMap =
+        await _channel.invokeMethod<Map?>('video.create', args);
+
+    final Map<String, dynamic>? response = responseLinkedHashMap != null
+        ? Map<String, dynamic>.from(responseLinkedHashMap)
+        : null;
     // Return the shared offscreen texture if shared EGL context is specified
     final texId = response?['textureId'] as int?;
-    List<int?> ret = [texId];
-    if (wantSharedTexture) ret.add(response?['sharedTextureId'] as int?);
+    final sharedTexId = response?['sharedTextureId'] as int?;
+    List<int?> ret = [texId, sharedTexId];
     return ret;
   }
 
@@ -54,6 +42,41 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
       'video.player.dispose',
       <String, dynamic>{'textureId': textureId},
     );
+  }
+
+  @override
+  Stream<VideoEvent> videoEventsFor(int textureId) {
+    return _eventChannelFor(textureId)
+        .receiveBroadcastStream()
+        .map((dynamic event) {
+      final Map<dynamic, dynamic> map = event as Map<dynamic, dynamic>;
+      switch (map['event']) {
+        case 'initialized':
+          return VideoEvent(
+            eventType: VideoEventType.initialized,
+            duration: Duration(milliseconds: map['duration'] as int),
+            size: Size((map['width'] as num?)?.toDouble() ?? 0.0,
+                (map['height'] as num?)?.toDouble() ?? 0.0),
+            rotationCorrection: map['rotationCorrection'] as int? ?? 0,
+          );
+        case 'completed':
+          return VideoEvent(
+            eventType: VideoEventType.completed,
+          );
+        case 'bufferingUpdate':
+          final List<dynamic> values = map['values'] as List<dynamic>;
+          return VideoEvent(
+            buffered: values.map<DurationRange>(_toDurationRange).toList(),
+            eventType: VideoEventType.bufferingUpdate,
+          );
+        case 'bufferingStart':
+          return VideoEvent(eventType: VideoEventType.bufferingStart);
+        case 'bufferingEnd':
+          return VideoEvent(eventType: VideoEventType.bufferingEnd);
+        default:
+          return VideoEvent(eventType: VideoEventType.unknown);
+      }
+    });
   }
 
   @override
@@ -68,13 +91,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'useCache': false,
           'maxCacheSize': 0,
           'maxCacheFileSize': 0,
-          'showNotification': dataSource.showNotification,
-          'title': dataSource.title,
-          'author': dataSource.author,
-          'imageUrl': dataSource.imageUrl,
-          'notificationChannelName': dataSource.notificationChannelName,
-          'overriddenDuration': dataSource.overriddenDuration?.inMilliseconds,
-          'activityName': dataSource.activityName
         };
         break;
       case DataSourceType.network:
@@ -82,23 +98,11 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'key': dataSource.key,
           'uri': dataSource.uri,
           'formatHint': dataSource.rawFormalHint,
-          'headers': dataSource.headers,
-          'useCache': dataSource.useCache,
-          'maxCacheSize': dataSource.maxCacheSize,
-          'maxCacheFileSize': dataSource.maxCacheFileSize,
-          'cacheKey': dataSource.cacheKey,
-          'showNotification': dataSource.showNotification,
-          'title': dataSource.title,
-          'author': dataSource.author,
-          'imageUrl': dataSource.imageUrl,
-          'notificationChannelName': dataSource.notificationChannelName,
-          'overriddenDuration': dataSource.overriddenDuration?.inMilliseconds,
-          'licenseUrl': dataSource.licenseUrl,
-          'certificateUrl': dataSource.certificateUrl,
-          'drmHeaders': dataSource.drmHeaders,
-          'activityName': dataSource.activityName,
-          'clearKey': dataSource.clearKey,
-          'videoExtension': dataSource.videoExtension,
+          // 'headers': dataSource.headers,
+          // 'useCache': dataSource.useCache,
+          // 'maxCacheSize': dataSource.maxCacheSize,
+          // 'maxCacheFileSize': dataSource.maxCacheFileSize,
+          // 'cacheKey': dataSource.cacheKey,
         };
         break;
       case DataSourceType.file:
@@ -108,15 +112,10 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
           'useCache': false,
           'maxCacheSize': 0,
           'maxCacheFileSize': 0,
-          'showNotification': dataSource.showNotification,
-          'title': dataSource.title,
-          'author': dataSource.author,
-          'imageUrl': dataSource.imageUrl,
-          'notificationChannelName': dataSource.notificationChannelName,
-          'overriddenDuration': dataSource.overriddenDuration?.inMilliseconds,
-          'activityName': dataSource.activityName,
-          'clearKey': dataSource.clearKey
         };
+        break;
+      case DataSourceType.contentUri:
+        // TODO: Handle this case.
         break;
     }
     await _channel.invokeMethod<void>(
@@ -130,9 +129,25 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
+  Future<void> play(int? textureId) {
+    return _channel.invokeMethod<void>(
+      'video.player.play',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
+  Future<void> pause(int? textureId) {
+    return _channel.invokeMethod<void>(
+      'video.player.pause',
+      <String, dynamic>{'textureId': textureId},
+    );
+  }
+
+  @override
   Future<void> setLooping(int? textureId, bool looping) {
     return _channel.invokeMethod<void>(
-      'video.setLooping',
+      'video.player.setLooping',
       <String, dynamic>{
         'textureId': textureId,
         'looping': looping,
@@ -141,25 +156,9 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> play(int? textureId) {
-    return _channel.invokeMethod<void>(
-      'video.play',
-      <String, dynamic>{'textureId': textureId},
-    );
-  }
-
-  @override
-  Future<void> pause(int? textureId) {
-    return _channel.invokeMethod<void>(
-      'video.pause',
-      <String, dynamic>{'textureId': textureId},
-    );
-  }
-
-  @override
   Future<void> setVolume(int? textureId, double volume) {
     return _channel.invokeMethod<void>(
-      'video.setVolume',
+      'video.player.setVolume',
       <String, dynamic>{
         'textureId': textureId,
         'volume': volume,
@@ -168,9 +167,9 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setSpeed(int? textureId, double speed) {
+  Future<void> setPlaybackSpeed(int? textureId, double speed) {
     return _channel.invokeMethod<void>(
-      'video.setSpeed',
+      'video.player.setPlaybackSpeed',
       <String, dynamic>{
         'textureId': textureId,
         'speed': speed,
@@ -179,23 +178,9 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setTrackParameters(
-      int? textureId, int? width, int? height, int? bitrate) {
-    return _channel.invokeMethod<void>(
-      'video.setTrackParameters',
-      <String, dynamic>{
-        'textureId': textureId,
-        'width': width,
-        'height': height,
-        'bitrate': bitrate,
-      },
-    );
-  }
-
-  @override
   Future<void> seekTo(int? textureId, Duration? position) {
     return _channel.invokeMethod<void>(
-      'video.seekTo',
+      'video.player.seekToPos',
       <String, dynamic>{
         'textureId': textureId,
         'location': position!.inMilliseconds,
@@ -207,7 +192,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   Future<Duration> getPosition(int? textureId) async {
     return Duration(
         milliseconds: await _channel.invokeMethod<int>(
-              'video.position',
+              'video.player.getPos',
               <String, dynamic>{'textureId': textureId},
             ) ??
             0);
@@ -227,18 +212,6 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   @override
-  Future<void> setAudioTrack(int? textureId, String? name, int? index) {
-    return _channel.invokeMethod<void>(
-      'video.setAudioTrack',
-      <String, dynamic>{
-        'textureId': textureId,
-        'name': name,
-        'index': index,
-      },
-    );
-  }
-
-  @override
   Future<void> setMixWithOthers(int? textureId, bool mixWithOthers) {
     return _channel.invokeMethod<void>(
       'video.setMixWithOthers',
@@ -249,143 +222,42 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
     );
   }
 
-  @override
-  Future<void> clearCache() {
-    return _channel.invokeMethod<void>(
-      'video.clearCache',
-      <String, dynamic>{},
-    );
-  }
+  // @override
+  // Future<void> clearCache() {
+  //   return _channel.invokeMethod<void>(
+  //     'video.clearCache',
+  //     <String, dynamic>{},
+  //   );
+  // }
 
-  @override
-  Future<void> preCache(DataSource dataSource, int preCacheSize) {
-    final Map<String, dynamic> dataSourceDescription = <String, dynamic>{
-      'key': dataSource.key,
-      'uri': dataSource.uri,
-      'certificateUrl': dataSource.certificateUrl,
-      'headers': dataSource.headers,
-      'maxCacheSize': dataSource.maxCacheSize,
-      'maxCacheFileSize': dataSource.maxCacheFileSize,
-      'preCacheSize': preCacheSize,
-      'cacheKey': dataSource.cacheKey,
-      'videoExtension': dataSource.videoExtension,
-    };
-    return _channel.invokeMethod<void>(
-      'video.preCache',
-      <String, dynamic>{
-        'dataSource': dataSourceDescription,
-      },
-    );
-  }
+  // @override
+  // Future<void> preCache(DataSource dataSource, int preCacheSize) {
+  //   final Map<String, dynamic> dataSourceDescription = <String, dynamic>{
+  //     'key': dataSource.key,
+  //     'uri': dataSource.uri,
+  //     'certificateUrl': dataSource.certificateUrl,
+  //     'headers': dataSource.headers,
+  //     'maxCacheSize': dataSource.maxCacheSize,
+  //     'maxCacheFileSize': dataSource.maxCacheFileSize,
+  //     'preCacheSize': preCacheSize,
+  //     'cacheKey': dataSource.cacheKey,
+  //     'videoExtension': dataSource.videoExtension,
+  //   };
+  //   return _channel.invokeMethod<void>(
+  //     'video.preCache',
+  //     <String, dynamic>{
+  //       'dataSource': dataSourceDescription,
+  //     },
+  //   );
+  // }
 
-  @override
-  Future<void> stopPreCache(String url, String? cacheKey) {
-    return _channel.invokeMethod<void>(
-      'video.stopPreCache',
-      <String, dynamic>{'url': url, 'cacheKey': cacheKey},
-    );
-  }
-
-  @override
-  Stream<VideoEvent> videoEventsFor(int? textureId) {
-    return _eventChannelFor(textureId)
-        .receiveBroadcastStream()
-        .map((dynamic event) {
-      late Map<dynamic, dynamic> map;
-      if (event is Map) {
-        map = event;
-      }
-      final String? eventType = map["event"] as String?;
-      final String? key = map["key"] as String?;
-      switch (eventType) {
-        case 'initialized':
-          double width = 0;
-          double height = 0;
-
-          try {
-            if (map.containsKey("width")) {
-              final num widthNum = map["width"] as num;
-              width = widthNum.toDouble();
-            }
-            if (map.containsKey("height")) {
-              final num heightNum = map["height"] as num;
-              height = heightNum.toDouble();
-            }
-          } catch (exception) {
-            BetterPlayerUtils.log(exception.toString());
-          }
-
-          final Size size = Size(width, height);
-
-          return VideoEvent(
-            eventType: VideoEventType.initialized,
-            key: key,
-            duration: Duration(milliseconds: map['duration'] as int),
-            size: size,
-          );
-        case 'completed':
-          return VideoEvent(
-            eventType: VideoEventType.completed,
-            key: key,
-          );
-        case 'bufferingUpdate':
-          final List<dynamic> values = map['values'] as List;
-
-          return VideoEvent(
-            eventType: VideoEventType.bufferingUpdate,
-            key: key,
-            buffered: values.map<DurationRange>(_toDurationRange).toList(),
-          );
-        case 'bufferingStart':
-          return VideoEvent(
-            eventType: VideoEventType.bufferingStart,
-            key: key,
-          );
-        case 'bufferingEnd':
-          return VideoEvent(
-            eventType: VideoEventType.bufferingEnd,
-            key: key,
-          );
-
-        case 'play':
-          return VideoEvent(
-            eventType: VideoEventType.play,
-            key: key,
-          );
-
-        case 'pause':
-          return VideoEvent(
-            eventType: VideoEventType.pause,
-            key: key,
-          );
-
-        case 'seek':
-          return VideoEvent(
-            eventType: VideoEventType.seek,
-            key: key,
-            position: Duration(milliseconds: map['position'] as int),
-          );
-
-        case 'pipStart':
-          return VideoEvent(
-            eventType: VideoEventType.pipStart,
-            key: key,
-          );
-
-        case 'pipStop':
-          return VideoEvent(
-            eventType: VideoEventType.pipStop,
-            key: key,
-          );
-
-        default:
-          return VideoEvent(
-            eventType: VideoEventType.unknown,
-            key: key,
-          );
-      }
-    });
-  }
+  // @override
+  // Future<void> stopPreCache(String url, String? cacheKey) {
+  //   return _channel.invokeMethod<void>(
+  //     'video.stopPreCache',
+  //     <String, dynamic>{'url': url, 'cacheKey': cacheKey},
+  //   );
+  // }
 
   @override
   Widget buildView(int? textureId) {
@@ -393,7 +265,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   }
 
   EventChannel _eventChannelFor(int? textureId) {
-    return EventChannel('better_player_channel/videoEvents$textureId');
+    return EventChannel('videoPlayer/videoEvents$textureId');
   }
 
   DurationRange _toDurationRange(dynamic value) {

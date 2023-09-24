@@ -5,6 +5,7 @@
 import 'package:flutter/foundation.dart';
 import 'package:flutter/widgets.dart';
 import 'package:plugin_platform_interface/plugin_platform_interface.dart';
+import 'method_channel_video_player.dart';
 
 /// The interface that implementations of video_player must implement.
 ///
@@ -19,7 +20,7 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
 
   static final Object _token = Object();
 
-  static VideoPlayerPlatform _instance = _PlaceholderImplementation();
+  static VideoPlayerPlatform _instance = MethodChannelVideoPlayer();
 
   /// The instance of [VideoPlayerPlatform] to use.
   ///
@@ -49,7 +50,8 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
   }
 
   /// Creates an instance of a video player and returns its textureId.
-  Future<int?> create(DataSource dataSource) {
+  Future<List<int?>> create(
+      {mixWithOthers = false, allowBackgroundPlayback = false}) {
     throw UnimplementedError('create() has not been implemented.');
   }
 
@@ -58,9 +60,8 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
     throw UnimplementedError('videoEventsFor() has not been implemented.');
   }
 
-  /// Sets the looping attribute of the video.
-  Future<void> setLooping(int textureId, bool looping) {
-    throw UnimplementedError('setLooping() has not been implemented.');
+  Future<void> setDataSource(int? textureId, DataSource dataSource) {
+    throw UnimplementedError('play() has not been implemented.');
   }
 
   /// Starts the video playback.
@@ -71,6 +72,11 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
   /// Stops the video playback.
   Future<void> pause(int textureId) {
     throw UnimplementedError('pause() has not been implemented.');
+  }
+
+  /// Sets the looping attribute of the video.
+  Future<void> setLooping(int textureId, bool looping) {
+    throw UnimplementedError('setLooping() has not been implemented.');
   }
 
   /// Sets the volume to a range between 0.0 and 1.0.
@@ -93,14 +99,18 @@ abstract class VideoPlayerPlatform extends PlatformInterface {
     throw UnimplementedError('getPosition() has not been implemented.');
   }
 
-  /// Returns a widget displaying the video with a given textureID.
-  Widget buildView(int textureId) {
-    throw UnimplementedError('buildView() has not been implemented.');
+  Future<DateTime?> getAbsolutePosition(int? textureId) {
+    throw UnimplementedError('getPosition() has not been implemented.');
   }
 
   /// Sets the audio mode to mix with other sources
-  Future<void> setMixWithOthers(bool mixWithOthers) {
-    throw UnimplementedError('setMixWithOthers() has not been implemented.');
+  Future<void> setMixWithOthers(int? textureId, bool mixWithOthers) {
+    throw UnimplementedError('getPosition() has not been implemented.');
+  }
+
+  /// Returns a widget displaying the video with a given textureID.
+  Widget buildView(int textureId) {
+    throw UnimplementedError('buildView() has not been implemented.');
   }
 }
 
@@ -158,6 +168,41 @@ class DataSource {
   /// The package that the asset was loaded from. Only set for
   /// [DataSourceType.asset] videos.
   final String? package;
+
+  /// **Android only**. String representation of a formatHint.
+  String? get rawFormalHint {
+    switch (formatHint) {
+      case VideoFormat.ss:
+        return 'ss';
+      case VideoFormat.hls:
+        return 'hls';
+      case VideoFormat.dash:
+        return 'dash';
+      case VideoFormat.other:
+        return 'other';
+      default:
+        return null;
+    }
+  }
+
+  /// Key to compare DataSource
+  String get key {
+    String? result = "";
+
+    if (uri != null && uri!.isNotEmpty) {
+      result = uri;
+    } else if (package != null && package!.isNotEmpty) {
+      result = "$package:$asset";
+    } else {
+      result = asset;
+    }
+
+    if (formatHint != null) {
+      result = "$result:$rawFormalHint";
+    }
+
+    return result!;
+  }
 }
 
 /// The way in which the video was originally loaded.
