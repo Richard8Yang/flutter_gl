@@ -8,6 +8,7 @@ import android.content.Context
 import android.net.Uri
 import android.view.Surface
 import android.os.Build
+import android.util.Log
 import androidx.annotation.VisibleForTesting
 import com.google.android.exoplayer2.*
 import com.google.android.exoplayer2.ExoPlayer
@@ -29,6 +30,7 @@ import com.google.android.exoplayer2.upstream.DataSource;
 import com.google.android.exoplayer2.upstream.DefaultDataSource
 import com.google.android.exoplayer2.upstream.DefaultHttpDataSource
 import com.google.android.exoplayer2.util.Util
+import com.google.android.exoplayer2.video.VideoSize
 import io.flutter.plugin.common.EventChannel
 import io.flutter.view.TextureRegistry
 import kotlin.math.max
@@ -168,6 +170,13 @@ internal class VideoPlayer {
                     if (playbackState != Player.STATE_BUFFERING) {
                         setBuffering(false)
                     }
+                }
+
+                override fun onVideoSizeChanged(videoSize: VideoSize) {
+                    // Video frame size changed
+                    Log.d("INFO ", "Video size changed to: %d x %d".format(videoSize.width, videoSize.height))
+                    textureEntry.surfaceTexture().setDefaultBufferSize(videoSize.width, videoSize.height)
+                    renderer?.updateTextureSize(videoSize.width, videoSize.height)
                 }
 
                 override fun onPlayerError(error: PlaybackException) {

@@ -25,12 +25,12 @@ class VideoPlayerPlugin(
     private val options = VideoPlayerOptions()
 
     public fun setShareEglContext(shareEglContext: EGLContext) {
+        //Log.d("VideoPlayerPlugin", "sharedEglContext: $shareEglContext")
         eglContext = shareEglContext;
     }
 
     public fun onMethodCall(call: MethodCall, result: MethodChannel.Result) {
-        //Log.d("PLAYER", call.method)
-        when (call.method) {
+         when (call.method) {
             "video.init" -> initialize()
             "video.create" -> {
                 val videoTex = textureEntry.createSurfaceTexture()

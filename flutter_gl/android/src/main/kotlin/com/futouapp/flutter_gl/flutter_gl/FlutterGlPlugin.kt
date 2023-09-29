@@ -1,6 +1,8 @@
 package com.futouapp.flutter_gl.flutter_gl
 
 import android.content.Context
+import android.opengl.*
+import android.util.Log
 
 import io.flutter.embedding.engine.plugins.FlutterPlugin
 import io.flutter.plugin.common.MethodCall
@@ -20,6 +22,8 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var context: Context
     private lateinit var messenger: BinaryMessenger;
     private lateinit var videoPlugin: VideoPlayerPlugin;
+
+    private var eglContext: EGLContext = EGL14.EGL_NO_CONTEXT
 
     private var renders = mutableMapOf<Int, CustomRender>()
 
@@ -51,6 +55,7 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
                 val render = CustomRender(entry, glWidth, glHeight)
                 renders[textureID] = render
 
+                //eglContext = render.getSharedEglContext()
                 videoPlugin.setShareEglContext(render.getSharedEglContext())
 
                 result.success(mapOf("textureId" to textureID))
@@ -86,6 +91,7 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(null)
             }
             else -> {
+                //videoPlugin.setShareEglContext(eglContext)
                 videoPlugin.onMethodCall(call, result)
             }
         }

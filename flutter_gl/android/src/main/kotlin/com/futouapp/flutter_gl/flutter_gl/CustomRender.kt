@@ -50,8 +50,8 @@ class CustomRender(
             eglEnv.makeCurrent()
 
             // Enable alpha channel
-            glEnable(GL_BLEND);
-            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA);
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
 
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
@@ -70,7 +70,9 @@ class CustomRender(
     }
 
     fun getSharedEglContext(): EGLContext {
-        return shareEglEnv!!.eglContext
+        //return shareEglEnv!!.eglContext
+        return eglEnv.eglContext
+        //return dartEglEnv!!.eglContext
     }
 
     private fun initEGL() {

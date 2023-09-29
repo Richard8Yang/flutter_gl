@@ -172,10 +172,9 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   VideoPlayerController({
     //this.bufferingConfiguration = const BetterPlayerBufferingConfiguration(),
     bool autoCreate = true,
-    bool wantSharedTexture = true,
   }) : super(VideoPlayerValue(duration: null)) {
     if (autoCreate) {
-      _create(wantSharedTexture);
+      _create();
     }
   }
 
@@ -201,8 +200,8 @@ class VideoPlayerController extends ValueNotifier<VideoPlayerValue> {
   int? get sharedTextureId => _sharedTextureId;
 
   /// Attempts to open the given [dataSource] and load metadata about the video.
-  Future<void> _create(bool wantSharedTexture) async {
-    final texIds = await _videoPlayerPlatform.create(mixWithOthers: true);
+  Future<void> _create() async {
+    final texIds = await _videoPlayerPlatform.create(mixWithOthers: false);
     _textureId = texIds[0];
     _sharedTextureId = texIds.length > 1 ? texIds[1] : null;
     _creatingCompleter.complete(null);

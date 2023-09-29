@@ -119,7 +119,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
         break;
     }
     await _channel.invokeMethod<void>(
-      'video.setDataSource',
+      'video.player.setDataSource',
       <String, dynamic>{
         'textureId': textureId,
         'dataSource': dataSourceDescription,
@@ -201,7 +201,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<DateTime?> getAbsolutePosition(int? textureId) async {
     final int milliseconds = await _channel.invokeMethod<int>(
-          'video.absolutePosition',
+          'video.player.getAbsolutePos',
           <String, dynamic>{'textureId': textureId},
         ) ??
         0;
@@ -214,7 +214,7 @@ class MethodChannelVideoPlayer extends VideoPlayerPlatform {
   @override
   Future<void> setMixWithOthers(int? textureId, bool mixWithOthers) {
     return _channel.invokeMethod<void>(
-      'video.setMixWithOthers',
+      'video.player.setMixWithOthers',
       <String, dynamic>{
         'textureId': textureId,
         'mixWithOthers': mixWithOthers,

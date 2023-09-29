@@ -157,7 +157,7 @@ class EglEnv {
     }
 
     fun makeCurrent() {
-        Log.d(this.javaClass.name, " egl make current ")
+        //Log.d(this.javaClass.name, " egl make current ")
         if (!EGL14.eglMakeCurrent(eglDisplay, eglSurface, eglSurface, eglContext)) {
             checkEglError("EGL make current failed")
         }
