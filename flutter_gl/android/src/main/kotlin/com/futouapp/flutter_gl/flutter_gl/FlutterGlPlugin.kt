@@ -23,7 +23,6 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
     override fun onAttachedToEngine(flutterPluginBinding: FlutterPlugin.FlutterPluginBinding) {
         channel = MethodChannel(flutterPluginBinding.binaryMessenger, "flutter_gl")
         channel.setMethodCallHandler(this)
-
         registry = flutterPluginBinding.textureRegistry
         context = flutterPluginBinding.applicationContext
     }

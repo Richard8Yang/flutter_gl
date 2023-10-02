@@ -1,15 +1,13 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
-
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
-import 'package:flutter/widgets.dart';
 import 'package:flutter_gl/flutter_gl.dart';
+import 'package:video_player/video_player.dart';
+//import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class ExampleDemoTest extends StatefulWidget {
   _MyAppState createState() => _MyAppState();
@@ -31,6 +29,8 @@ class _MyAppState extends State<ExampleDemoTest> {
 
   dynamic defaultFramebuffer;
   dynamic defaultFramebufferTexture;
+
+  VideoPlayerController? _videoCtrl;
 
   int n = 0;
 
@@ -102,7 +102,17 @@ class _MyAppState extends State<ExampleDemoTest> {
 
     print(" screenSize: ${screenSize} dpr: ${dpr} ");
 
-    initPlatformState();
+    initPlatformState().then((value) {
+      final videoUri =
+          "/storage/emulated/0/DCIM/Camera/VID_20230909_193950.mp4";
+      _videoCtrl = VideoPlayerController();
+      _videoCtrl!.setFileDataSource(File(videoUri)).then((value) {
+        _videoCtrl!.play();
+        sourceTexture = _videoCtrl!.sharedTextureId!;
+        print("Video texture: $sourceTexture");
+        setState(() {});
+      });
+    });
   }
 
   @override
@@ -183,7 +193,7 @@ class _MyAppState extends State<ExampleDemoTest> {
   }
 
   render() async {
-    print("render start: ${DateTime.now().millisecondsSinceEpoch} ");
+    //print("render start: ${DateTime.now().millisecondsSinceEpoch} ");
     final _gl = flutterGlPlugin.gl;
 
     int _current = DateTime.now().millisecondsSinceEpoch;
@@ -200,13 +210,11 @@ class _MyAppState extends State<ExampleDemoTest> {
     // print(" --------------pixels............. ");
     // print(pixels);
 
-    print(
-        " update sourceTexture: ${sourceTexture} t: ${DateTime.now().millisecondsSinceEpoch} ");
+    // print(
+    //     " update sourceTexture: ${sourceTexture} t: ${DateTime.now().millisecondsSinceEpoch} ");
 
     if (!kIsWeb) {
-      var res = await flutterGlPlugin.updateTexture(sourceTexture);
+      await flutterGlPlugin.updateTexture(sourceTexture);
     }
   }
-
-
 }

@@ -1,13 +1,12 @@
 package com.futouapp.flutter_gl.flutter_gl
 
-
+import android.opengl.*
 import android.opengl.GLES32.*
 import android.os.Handler
 import android.os.HandlerThread
 import com.futouapp.threeegl.ThreeEgl
 import io.flutter.view.TextureRegistry.SurfaceTextureEntry
 import java.util.concurrent.Semaphore
-
 
 class CustomRender(
     private val entry: SurfaceTextureEntry,
@@ -50,6 +49,10 @@ class CustomRender(
         this.execute {
             eglEnv.makeCurrent()
 
+            // Enable alpha channel
+            glEnable(GL_BLEND)
+            glBlendFunc(GL_SRC_ALPHA, GL_ONE_MINUS_SRC_ALPHA)
+
             glBindFramebuffer(GL_FRAMEBUFFER, 0)
 
             glClearColor(0.0f, 0.0f, 0.0f, 0.0f)
@@ -69,22 +72,27 @@ class CustomRender(
 
     private fun initEGL() {
 
-        if(shareEglEnv == null) {
+        var shareEglContext = ThreeEgl.getContext("shareContext")
+        println("flutter_gl: External shared GL context: $shareEglContext")
+
+        if (shareEglContext == null || shareEglContext == EGL14.EGL_NO_CONTEXT) {
             shareEglEnv = EglEnv()
             shareEglEnv!!.setupRender()
             ThreeEgl.setContext("shareContext", shareEglEnv!!.eglContext)
+            shareEglContext = shareEglEnv!!.eglContext
+            println("flutter_gl: Save to external shared GL context: $shareEglContext")
         }
 
         entry.surfaceTexture().setDefaultBufferSize(glWidth, glHeight)
 
         eglEnv = EglEnv()
-        eglEnv.setupRender(shareEglEnv!!.eglContext)
+        eglEnv.setupRender(shareEglContext)
         eglEnv.buildWindowSurface(entry.surfaceTexture())
         eglEnv.makeCurrent()
 
         if(dartEglEnv == null) {
             dartEglEnv = EglEnv()
-            dartEglEnv!!.setupRender(shareEglEnv!!.eglContext)
+            dartEglEnv!!.setupRender(shareEglContext)
             dartEglEnv!!.buildOffScreenSurface(glWidth, glHeight)
         }
     }
