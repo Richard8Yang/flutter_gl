@@ -1,15 +1,12 @@
 import 'dart:async';
 import 'dart:io';
 import 'dart:math';
-import 'dart:typed_data';
-
-import 'dart:ui' as ui;
 
 import 'package:flutter/foundation.dart';
 import 'package:flutter/material.dart';
 
 import 'package:flutter_gl/flutter_gl.dart';
-import 'package:flutter_gl/video_player/video_player.dart';
+import 'package:video_player/video_player.dart';
 //import 'package:wechat_assets_picker/wechat_assets_picker.dart';
 
 class ExampleDemoTest extends StatefulWidget {

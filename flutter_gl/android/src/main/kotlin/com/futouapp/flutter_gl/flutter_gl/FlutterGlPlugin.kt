@@ -21,7 +21,6 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
     private lateinit var registry: TextureRegistry
     private lateinit var context: Context
     private lateinit var messenger: BinaryMessenger;
-    private lateinit var videoPlugin: VideoPlayerPlugin;
 
     private var renders = mutableMapOf<Int, CustomRender>()
 
@@ -31,8 +30,6 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
         registry = flutterPluginBinding.textureRegistry
         context = flutterPluginBinding.applicationContext
         messenger = flutterPluginBinding.binaryMessenger;
-
-        videoPlugin = VideoPlayerPlugin(context, messenger, registry)
     }
 
     override fun onMethodCall(call: MethodCall, result: Result) {
@@ -52,8 +49,6 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
 
                 val render = CustomRender(entry, glWidth, glHeight)
                 renders[textureID] = render
-
-                videoPlugin.setShareEglContext(render.getSharedEglContext())
 
                 result.success(mapOf("textureId" to textureID))
             }
@@ -88,7 +83,7 @@ class FlutterGlPlugin : FlutterPlugin, MethodCallHandler {
                 result.success(null)
             }
             else -> {
-                videoPlugin.onMethodCall(call, result)
+                result.notImplemented()
             }
         }
     }

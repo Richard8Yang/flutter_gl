@@ -105,13 +105,13 @@ public class CustomRender: NSObject, FlutterTexture {
   
   // ==================================
   func initEGL() {
-      
-      if(CustomRender.eAGLShareContext == nil) {
+
+      var shareEglCtx = ThreeEgl.setContext(key: 3);
+      if (shareEglCtx == nil || CustomRender.eAGLShareContext == nil) {
           CustomRender.eAGLShareContext = EAGLContext.init(api: EAGLRenderingAPI.openGLES3);
           ThreeEgl.setContext(key: 3, context: CustomRender.eAGLShareContext!);
       }
       
-    
       if(CustomRender.dartEglEnv == nil) {
           CustomRender.dartEglEnv = EglEnv();
           CustomRender.dartEglEnv!.setupRender(shareContext: CustomRender.eAGLShareContext);
