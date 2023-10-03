@@ -73,14 +73,14 @@ class CustomRender(
     private fun initEGL() {
 
         var shareEglContext = ThreeEgl.getContext("shareContext")
-        println("flutter_gl: External shared GL context: $shareEglContext")
+        println("flutter_gl: Got shared GL context: $shareEglContext")
 
         if (shareEglContext == null || shareEglContext == EGL14.EGL_NO_CONTEXT) {
             shareEglEnv = EglEnv()
             shareEglEnv!!.setupRender()
             ThreeEgl.setContext("shareContext", shareEglEnv!!.eglContext)
             shareEglContext = shareEglEnv!!.eglContext
-            println("flutter_gl: Save to external shared GL context: $shareEglContext")
+            println("flutter_gl: Save shared GL context: $shareEglContext")
         }
 
         entry.surfaceTexture().setDefaultBufferSize(glWidth, glHeight)
@@ -136,6 +136,8 @@ class CustomRender(
         shareEglEnv?.dispose()
         shareEglEnv = null
 
+        ThreeEgl.remove("shareContext")
+        println("flutter_gl: Removed shared GL context")
 
         entry.release()
 
